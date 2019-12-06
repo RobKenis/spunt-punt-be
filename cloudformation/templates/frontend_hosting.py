@@ -1,8 +1,9 @@
 from troposphere import Template, Parameter, constants, Output, Ref, Export, Join, AWS_STACK_NAME, ImportValue, \
-    AWS_REGION
+    AWS_REGION, GetAtt
 from troposphere.certificatemanager import Certificate, DomainValidationOption
 from troposphere.cloudfront import Distribution, DistributionConfig, DefaultCacheBehavior, ForwardedValues, Origin, \
     CustomOriginConfig, ViewerCertificate
+from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
 from troposphere.s3 import Bucket, WebsiteConfiguration
 
 template = Template('S3 and CloudFront for spunt.be')
@@ -70,6 +71,27 @@ public_distribution = template.add_resource(Distribution(
             MinimumProtocolVersion='TLSv1.1_2016',  # We might need to raise this
         ),
     ),
+))
+
+template.add_resource(RecordSetGroup(
+    "DnsRecords",
+    HostedZoneId=ImportValue(Join('-', [Ref(dns_stack), 'HostedZoneId'])),
+    RecordSets=[RecordSet(
+        Name=Ref(domain_name),
+        Type='A',
+        AliasTarget=AliasTarget(
+            HostedZoneId='Z2FDTNDATAQYW2',
+            DNSName=GetAtt(public_distribution, 'DomainName'),
+        ),
+    ), RecordSet(
+        Name=Ref(domain_name),
+        Type='AAAA',
+        AliasTarget=AliasTarget(
+            HostedZoneId='Z2FDTNDATAQYW2',
+            DNSName=GetAtt(public_distribution, 'DomainName'),
+        ),
+    )],
+    Comment=Join('', ['Record for CloudFront in ', Ref(AWS_STACK_NAME)]),
 ))
 
 template.add_output(Output(

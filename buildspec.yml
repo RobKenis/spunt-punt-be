@@ -11,10 +11,11 @@ phases:
       - pip3 install -r cloudformation/requirements.txt
   build:
     commands:
-      - python cloudformation/templates/spunt_be.py
+      - cd cloudformation && invoke build && cd ..
   post_build:
     commands:
       - echo 'Finished building templates'
-  # artifacts:
-  #   files:
-  #     - cloudformation/output/*
+      - ls -al cloudformation/output
+artifacts:
+  files:
+    - cloudformation/output/*.json

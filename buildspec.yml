@@ -15,7 +15,7 @@ phases:
   post_build:
     commands:
       - echo 'Finished building templates'
-      - ls -al cloudformation/output
 artifacts:
   files:
     - cloudformation/output/*.json
+  discard-paths: yes

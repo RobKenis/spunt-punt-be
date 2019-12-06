@@ -46,6 +46,11 @@ pipeline_role = template.add_resource(Role(
                 Action=[awacs.sts.AssumeRole],
                 Principal=Principal("Service", "codepipeline.amazonaws.com")
             ),
+            awacs.aws.Statement(
+                Effect=awacs.aws.Allow,
+                Action=[awacs.sts.AssumeRole],
+                Principal=Principal("Service", "cloudformation.amazonaws.com")
+            ),
         ]
     ),
     Policies=[
@@ -84,6 +89,22 @@ pipeline_role = template.add_resource(Role(
                         Effect=awacs.aws.Allow,
                         Action=[Action("codebuild", "*")],
                         Resource=['*']
+                    ),
+                ]
+            )
+        ),
+        Policy(
+            PolicyName='AllowCloudFormation',
+            PolicyDocument=awacs.aws.Policy(
+                Statement=[
+                    awacs.aws.Statement(
+                        Effect=awacs.aws.Allow,
+                        Action=[
+                            Action("cloudformation", "*"),
+                            Action("sts", "AssumeRole"),
+                            Action("iam", "PassRole"),
+                        ],
+                        Resource=['*'],
                     ),
                 ]
             )
@@ -137,10 +158,10 @@ codebuild_project = template.add_resource(Project(
         Type='LINUX_CONTAINER',
         Image='aws/codebuild/amazonlinux2-x86_64-standard:2.0',
         ComputeType='BUILD_GENERAL1_SMALL',
-        # EnvironmentVariables=[EnvironmentVariable(
-        #     Name='DEPLOY_BUCKET',
-        #     Value=Ref(website_bucket),
-        # )]
+        EnvironmentVariables=[EnvironmentVariable(
+            Name='BUILD_BUCKET',
+            Value=Ref(build_bucket),
+        )]
     )
 ))
 
@@ -167,8 +188,8 @@ template.add_resource(Pipeline(
                     Configuration={
                         "Owner": Ref(github_user),
                         "Repo": Ref(github_repo),
-                        "Branch": "feature/frontend-hosting-cfn",  # CHANGE THIS
-                        "OAuthToken": Ref(github_token)
+                        "Branch": 'master',
+                        "OAuthToken": Ref(github_token),
                     },
                     OutputArtifacts=[
                         OutputArtifacts(
@@ -194,12 +215,39 @@ template.add_resource(Pipeline(
                             Name='SourceOutput'
                         )
                     ],
+                    OutputArtifacts=[OutputArtifacts(
+                        Name='BuildOutput',
+                    )],
                     Configuration={
                         "ProjectName": Ref(codebuild_project),
                     }
                 )
             ]
         ),
+        Stages(
+            Name='DeployCloudFormation',
+            Actions=[
+                Actions(
+                    Name='SpuntPuntBe',
+                    ActionTypeId=ActionTypeId(
+                        Category='Deploy',
+                        Owner='AWS',
+                        Provider='CloudFormation',
+                        Version='1'
+                    ),
+                    InputArtifacts=[InputArtifacts(
+                        Name='BuildOutput',
+                    )],
+                    Configuration={
+                        'ActionMode': 'CREATE_UPDATE',
+                        'StackName': 'spunt-punt-be',
+                        'TemplatePath': 'BuildOutput::frontend_hosting.json',  # CHANGE THIS
+                        'RoleArn': GetAtt(pipeline_role, 'Arn'),
+                    },
+                    RoleArn=GetAtt(pipeline_role, 'Arn'),
+                ),
+            ],
+        )
     ]
 ))
 

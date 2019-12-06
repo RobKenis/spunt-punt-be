@@ -2,17 +2,19 @@ version: 0.2
             
 phases:
   install:
+    runtime-versions:
+      python: 3.8
     commands:
-      - sudo apt-get install python-pip
-      - pip install --upgrade awscli
+      - pip3 install --upgrade awscli
   pre_build:
     commands:
-      - pip install -r cloudformation/requirements.txt
+      - pip3 install -r cloudformation/requirements.txt
   build:
     commands:
       - python cloudformation/templates/spunt_be.py
+  post_build:
     commands:
       - echo 'Finished building templates'
-  artifacts:
-  files:
-    - cloudformation/output/*
+  # artifacts:
+  #   files:
+  #     - cloudformation/output/*

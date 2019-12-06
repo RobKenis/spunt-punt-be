@@ -135,7 +135,7 @@ codebuild_project = template.add_resource(Project(
     ),
     Environment=Environment(
         Type='LINUX_CONTAINER',
-        Image='aws/codebuild/python:3.7',
+        Image='aws/codebuild/amazonlinux2-x86_64-standard:2.0',
         ComputeType='BUILD_GENERAL1_SMALL',
         # EnvironmentVariables=[EnvironmentVariable(
         #     Name='DEPLOY_BUCKET',

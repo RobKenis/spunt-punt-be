@@ -248,7 +248,7 @@ template.add_resource(Pipeline(
                     Configuration={
                         'ActionMode': 'CHANGE_SET_REPLACE',
                         'StackName': 'spunt-punt-be',
-                        'TemplatePath': 'BuildOutput::spunt_be.json',
+                        'TemplatePath': 'BuildOutput::frontend_hosting.json',
                         'RoleArn': GetAtt(pipeline_role, 'Arn'),
                         'ChangeSetName': 'SpuntPuntBeChangeSet',
                     },
@@ -279,5 +279,5 @@ template.add_resource(Pipeline(
     ]
 ))
 
-f = open("output/spunt_be_pipeline.json", "w")
+f = open("output/deploy_pipeline.json", "w")
 f.write(template.to_json())

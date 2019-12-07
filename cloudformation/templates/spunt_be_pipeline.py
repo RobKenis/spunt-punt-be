@@ -248,7 +248,7 @@ template.add_resource(Pipeline(
                     Configuration={
                         'ActionMode': 'CHANGE_SET_REPLACE',
                         'StackName': 'spunt-punt-be',
-                        'TemplatePath': 'BuildOutput::frontend_hosting.json',  # CHANGE THIS
+                        'TemplatePath': 'BuildOutput::spunt_be.json',
                         'RoleArn': GetAtt(pipeline_role, 'Arn'),
                         'ChangeSetName': 'SpuntPuntBeChangeSet',
                     },

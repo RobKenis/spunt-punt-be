@@ -15,6 +15,7 @@ phases:
   post_build:
     commands:
       - echo 'Finished building templates'
+      - aws s3 sync cloudformation/output/ s3://$BUILD_BUCKET/cloudformation/
 artifacts:
   files:
     - cloudformation/output/*.json

@@ -28,9 +28,16 @@ github_repo = template.add_parameter(Parameter(
     Default='spunt-punt-be'
 ))
 
+git_branch = template.add_parameter(Parameter(
+    "GitBranch",
+    Type=constants.STRING,
+    Default='develop'
+))
+
 template.add_parameter_to_group(github_user, 'GitHub Settings')
 template.add_parameter_to_group(github_repo, 'GitHub Settings')
 template.add_parameter_to_group(github_token, 'GitHub Settings')
+template.add_parameter_to_group(git_branch, 'GitHub Settings')
 
 build_bucket = template.add_resource(Bucket(
     'BuildBucket',
@@ -188,7 +195,7 @@ template.add_resource(Pipeline(
                     Configuration={
                         "Owner": Ref(github_user),
                         "Repo": Ref(github_repo),
-                        "Branch": 'master',
+                        "Branch": Ref(git_branch),
                         "OAuthToken": Ref(github_token),
                     },
                     OutputArtifacts=[
@@ -228,7 +235,7 @@ template.add_resource(Pipeline(
             Name='DeployCloudFormation',
             Actions=[
                 Actions(
-                    Name='SpuntPuntBe',
+                    Name='CreateChangeSet',
                     ActionTypeId=ActionTypeId(
                         Category='Deploy',
                         Owner='AWS',
@@ -239,12 +246,33 @@ template.add_resource(Pipeline(
                         Name='BuildOutput',
                     )],
                     Configuration={
-                        'ActionMode': 'CREATE_UPDATE',
+                        'ActionMode': 'CHANGE_SET_REPLACE',
                         'StackName': 'spunt-punt-be',
                         'TemplatePath': 'BuildOutput::frontend_hosting.json',  # CHANGE THIS
                         'RoleArn': GetAtt(pipeline_role, 'Arn'),
+                        'ChangeSetName': 'SpuntPuntBeChangeSet',
                     },
                     RoleArn=GetAtt(pipeline_role, 'Arn'),
+                    RunOrder=1,
+                ),
+                Actions(
+                    Name='ExecuteChangeSet',
+                    ActionTypeId=ActionTypeId(
+                        Category='Deploy',
+                        Owner='AWS',
+                        Provider='CloudFormation',
+                        Version='1'
+                    ),
+                    InputArtifacts=[InputArtifacts(
+                        Name='BuildOutput',
+                    )],
+                    Configuration={
+                        'ActionMode': 'CHANGE_SET_EXECUTE',
+                        'StackName': 'spunt-punt-be',
+                        'ChangeSetName': 'SpuntPuntBeChangeSet',
+                    },
+                    RoleArn=GetAtt(pipeline_role, 'Arn'),
+                    RunOrder=2,
                 ),
             ],
         )

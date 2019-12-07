@@ -19,7 +19,7 @@ def build(c, docs=False):
 
 @task
 def deploy(c, docs=False):
-    with open('output/frontend_hosting.json', 'r') as template_body:
+    with open('output/spunt_be.json', 'r') as template_body:
         client.update_stack(
             StackName='spunt-punt-be',
             TemplateBody=template_body.read(),

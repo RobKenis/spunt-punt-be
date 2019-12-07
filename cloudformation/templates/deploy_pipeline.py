@@ -113,6 +113,20 @@ pipeline_role = template.add_resource(Role(
                         ],
                         Resource=['*'],
                     ),
+                    awacs.aws.Statement(
+                        Effect=awacs.aws.Allow,
+                        Action=[
+                            Action("acm", "RequestCertificate"),
+                        ],
+                        Resource=['*'],
+                    ),
+                    awacs.aws.Statement(
+                        Effect=awacs.aws.Allow,
+                        Action=[
+                            Action("s3", "*"),
+                        ],
+                        Resource=['*'],
+                    ),
                 ]
             )
         ),

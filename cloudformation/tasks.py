@@ -7,6 +7,11 @@ CLOUDFORMATION_TEMPLATES_DIR = 'templates'
 
 client = boto3.client('cloudformation')
 
+STACKS = {
+    'spunt-punt-be': 'output/spunt_be.json',
+    'spunt-video-engine': 'output/video_engine.json',
+}
+
 
 @task
 def build(c, docs=False):
@@ -18,10 +23,10 @@ def build(c, docs=False):
 
 
 @task
-def deploy(c, docs=False):
-    with open('output/spunt_be.json', 'r') as template_body:
+def deploy(c, stack, docs=False):
+    with open(STACKS[stack], 'r') as template_body:
         client.update_stack(
-            StackName='spunt-punt-be',
+            StackName=stack,
             TemplateBody=template_body.read(),
             Capabilities=['CAPABILITY_IAM'],
         )

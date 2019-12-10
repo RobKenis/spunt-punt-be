@@ -1,7 +1,7 @@
 from troposphere import Template, AWS_STACK_NAME, Ref, AWSObject, AWSProperty, Parameter, constants, ImportValue, Join, \
     Equals, Not
 from troposphere.certificatemanager import Certificate, DomainValidationOption
-from troposphere.cognito import UserPool
+from troposphere.cognito import UserPool, UserPoolClient
 from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
 
 
@@ -42,7 +42,7 @@ cognito_domain_name = template.add_parameter(Parameter(
     Description='Used for the A record since DomainName doesnt return its domain..'
 ))
 
-DOMAIN_IS_CREATED='DomainIsCreated'
+DOMAIN_IS_CREATED = 'DomainIsCreated'
 template.add_condition(DOMAIN_IS_CREATED, Not(Equals(Ref(cognito_domain_name), '')))
 
 certificate = template.add_resource(Certificate(
@@ -58,6 +58,15 @@ certificate = template.add_resource(Certificate(
 user_pool = template.add_resource(UserPool(
     'CognitoUserPool',
     UserPoolName=Ref(AWS_STACK_NAME),
+))
+
+spunt_be_client = template.add_resource(UserPoolClient(
+    'SpuntCognitoClient',
+    UserPoolId=Ref(user_pool),
+    ClientName='spunt-users',
+    CallbackURLs=['https://spunt.be/login'],  # TODO: Store this somewhere
+    LogoutURLs=['https://spunt.be/logout'],
+    SupportedIdentityProviders=['COGNITO'],  # TODO: Add facebook and google
 ))
 
 user_pool_domain = template.add_resource(UserPoolDomain(

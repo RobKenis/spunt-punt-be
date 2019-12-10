@@ -1,2 +1,10 @@
+# IDE
 .idea/
 .vscode/
+*.iws
+
+# Generated sources
+node_modules/
+
+# Platform files
+.DS_Store

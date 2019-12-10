@@ -1,0 +1,22 @@
+version: 0.2
+            
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - pip3 install --upgrade awscli
+  pre_build:
+    commands:
+      - pip3 install -r cloudformation/requirements.txt
+  build:
+    commands:
+      - cd cloudformation && invoke build && cd ..
+  post_build:
+    commands:
+      - echo 'Finished building templates'
+      - aws s3 sync cloudformation/output/ s3://$BUILD_BUCKET/cloudformation/
+artifacts:
+  files:
+    - cloudformation/output/*.json
+  discard-paths: yes

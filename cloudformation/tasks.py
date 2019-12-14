@@ -10,6 +10,7 @@ client = boto3.client('cloudformation')
 STACKS = {
     'spunt-punt-be': 'output/spunt_be.json',
     'spunt-video-engine': 'output/video_engine.json',
+    'spunt-core': 'output/core.json',
 }
 
 

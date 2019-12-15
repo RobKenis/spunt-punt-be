@@ -13,9 +13,8 @@ dynamo = boto3.client('dynamodb')
 def handler(event, context):
     video_ids = []
     for record in event['Records']:
-        print("Handling message with id: [{eventId}]".format(eventId=record['messageId']))
-        sns_msg = json.loads(record['body'])
-        msg = json.loads(sns_msg['Message'])
+        print("Handling message with id: [{eventId}]".format(eventId=record['Sns']['MessageId']))
+        msg = json.loads(record['Sns']['Message'])
         for notification in msg['Records']:
             video_id = str(uuid.uuid1())
             dynamo.put_item(

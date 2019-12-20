@@ -1,10 +1,11 @@
+import json
+
 from troposphere import Template, Ref, Join, AWS_STACK_NAME, GetAtt, constants, Parameter, ImportValue, iam, \
-    AWSProperty, awslambda
-from troposphere.awslambda import Function, Environment, Code, EventSourceMapping, EventInvokeConfig, OnFailure, \
-    DeadLetterConfig, TracingConfig, Permission
+    AWSProperty, awslambda, mediaconvert
+from troposphere.awslambda import Function, Environment, Code, EventInvokeConfig, OnFailure, \
+    TracingConfig, Permission
 from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role, Policy
-from troposphere.kinesis import Stream
 from troposphere.logs import LogGroup
 from troposphere.s3 import Bucket, NotificationConfiguration, TopicConfigurations, Filter, S3Key, Rules
 from troposphere.sns import Topic, TopicPolicy, Subscription
@@ -214,6 +215,45 @@ template.add_resource(EventInvokeConfig(
             Destination=GetAtt(processing_failed_queue, 'Arn'),
         ),
     ),
+))
+
+mediaconvert_queue = template.add_resource(mediaconvert.Queue(
+    'MediaConvertQueue',
+    Name=Ref(AWS_STACK_NAME),
+))
+
+template.add_resource(Role(
+    "MediaConvertRole",
+    Policies=[Policy(
+        PolicyName="MediaConvertExecutionPolicy",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:*"  # Meh, could be a little stricter
+                    ],
+                    "Resource": [
+                        Join("", ["arn:aws:s3:::", _upload_bucket_name]),
+                        Join("", ["arn:aws:s3:::", _upload_bucket_name, '/*'])
+                    ]
+                }
+            ]
+        },
+    )],
+    AssumeRolePolicyDocument={"Version": "2012-10-17", "Statement": [
+        {
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {
+                "Service": [
+                    "lambda.amazonaws.com",
+                    "mediaconvert.amazonaws.com"
+                ]
+            }
+        }
+    ]},
 ))
 
 f = open("output/video_engine.json", "w")

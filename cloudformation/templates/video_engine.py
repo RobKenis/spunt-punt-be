@@ -6,7 +6,8 @@ from troposphere.cloudformation import AWSCustomObject
 from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role, Policy
 from troposphere.logs import LogGroup
-from troposphere.s3 import Bucket, NotificationConfiguration, TopicConfigurations, Filter, S3Key, Rules
+from troposphere.s3 import Bucket, NotificationConfiguration, TopicConfigurations, Filter, S3Key, Rules, \
+    CorsConfiguration, CorsRules
 from troposphere.sns import Topic, TopicPolicy, Subscription
 from troposphere.sqs import Queue, QueuePolicy
 
@@ -207,6 +208,13 @@ upload_bucket = template.add_resource(Bucket(
 
 video_bucket = template.add_resource(Bucket(
     'VideoBucket',
+    CorsConfiguration=CorsConfiguration(
+        CorsRules=[CorsRules(
+            AllowedOrigins=['*'],
+            AllowedMethods=['GET', 'HEAD'],
+            AllowedHeaders=['*'],
+        )]
+    ),
 ))
 
 template.add_resource(QueuePolicy(
@@ -297,53 +305,57 @@ template.add_resource(LogGroup(
     RetentionInDays=7,
 ))
 
+encoding_updates_queue = template.add_resource(Queue(
+    'EncodingUpdatesQueue',
+))
+
+encoding_updates_topic = template.add_resource(Topic(
+    'EncodingUpdatesTopic',
+    Subscription=[Subscription(
+        Endpoint=GetAtt(encoding_updates_queue, 'Arn'),
+        Protocol='sqs',
+    )],
+))
+
 transcoder_role = template.add_resource(Role(
     "ElasticTranscoderPipelineRole",
     Policies=[Policy(
         PolicyName="ElasticTranscoderExecutionPolicy",
         PolicyDocument={
             "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Action": [
-                        "logs:CreateLogGroup",
-                        "logs:CreateLogStream",
-                        "logs:PutLogEvents"
-                    ],
-                    "Resource": "arn:aws:logs:*:*:*"
-                },
-                {
-                    "Effect": "Allow",
-                    "Action": [
-                        "elastictranscoder:*",
-                        "iam:PassRole"
-                    ],
-                    "Resource": [
-                        "*"
-                    ]
-                },
-                {
-                    "Effect": "Allow",
-                    "Action": [
-                        "s3:Get*"
-                    ],
-                    "Resource": [
-                        GetAtt(upload_bucket, 'Arn'),
-                        Join('', [GetAtt(upload_bucket, 'Arn'), '/*']),
-                    ]
-                },
-                {
-                    "Effect": "Allow",
-                    "Action": [
-                        "s3:*"
-                    ],
-                    "Resource": [
-                        GetAtt(video_bucket, 'Arn'),
-                        Join('', [GetAtt(video_bucket, 'Arn'), '/*']),
-                    ]
-                }
-            ]
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                ],
+                "Resource": "arn:aws:logs:*:*:*"
+            }, {
+                "Effect": "Allow",
+                "Action": [
+                    "elastictranscoder:*",
+                    "iam:PassRole"
+                ],
+                "Resource": ["*"]
+            }, {"Effect": "Allow",
+                "Action": [
+                    "s3:Get*"
+                ],
+                "Resource": [GetAtt(upload_bucket, 'Arn'), Join('', [GetAtt(upload_bucket, 'Arn'), '/*'])]
+                }, {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:*"
+                ],
+                "Resource": [GetAtt(video_bucket, 'Arn'), Join('', [GetAtt(video_bucket, 'Arn'), '/*'])]
+            }, {
+                "Effect": "Allow",
+                "Action": [
+                    "sns:Publish"
+                ],
+                "Resource": [Ref(encoding_updates_topic)]
+            }]
         },
     )],
     AssumeRolePolicyDocument={"Version": "2012-10-17", "Statement": [
@@ -358,18 +370,6 @@ transcoder_role = template.add_resource(Role(
             }
         }
     ]},
-))
-
-encoding_updates_queue = template.add_resource(Queue(
-    'EncodingUpdatesQueue',
-))
-
-encoding_updates_topic = template.add_resource(Topic(
-    'EncodingUpdatesTopic',
-    Subscription=[Subscription(
-        Endpoint=GetAtt(encoding_updates_queue, 'Arn'),
-        Protocol='sqs',
-    )],
 ))
 
 template.add_resource(QueuePolicy(

@@ -51,3 +51,8 @@ def upload_lambda(c, docs=False):
         Body='output/start_encode.zip',
         Key='lambda-code/video_engine/start_encode.zip',
     )
+
+
+@task
+def clean(c, docs=False):
+    os.system('rm output/*.json output/*.zip')

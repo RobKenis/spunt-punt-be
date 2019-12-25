@@ -1,9 +1,8 @@
-import json
-
 from troposphere import Template, Ref, Join, AWS_STACK_NAME, GetAtt, constants, Parameter, ImportValue, iam, \
-    AWSProperty, awslambda, mediaconvert
+    AWSProperty, awslambda
 from troposphere.awslambda import Function, Environment, Code, EventInvokeConfig, OnFailure, \
     TracingConfig, Permission
+from troposphere.cloudformation import AWSCustomObject
 from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role, Policy
 from troposphere.logs import LogGroup
@@ -25,6 +24,22 @@ class DestinationConfig(awslambda.DestinationConfig):
     }
 
 
+class Pipeline(AWSCustomObject):
+    resource_type = "Custom::ElasticTranscoderPipeline"
+
+    props = {
+        'ServiceToken': (str, True),
+        'Name': (str, True),
+        'Role': (str, True),
+        'InputBucket': (str, True),
+        'OutputBucket': (str, False),
+        'AwsKmsKeyArn': (str, False),
+        'ContentConfig': (object, False),
+        'ThumbnailConfig': (object, False),
+        'Notifications': (object, False),
+    }
+
+
 template = Template(Description='Video engine for spunt.be')
 
 _upload_bucket_name = Join('-', [Ref(AWS_STACK_NAME), 'upload'])
@@ -40,7 +55,15 @@ start_encode_lambda_code_key = template.add_parameter(Parameter(
     Type=constants.STRING,
     Default='lambda-code/video_engine/start_encode.zip',
 ))
+
+elastictranscoder_code_key = template.add_parameter(Parameter(
+    'ElasticTranscoder',
+    Type=constants.STRING,
+    Default='custom_resources/elastictranscoder.zip',
+))
+
 template.add_parameter_to_group(start_encode_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(elastictranscoder_code_key, 'Lambda Keys')
 
 video_events_table = template.add_resource(Table(
     'VideoEventsTable',
@@ -182,6 +205,10 @@ upload_bucket = template.add_resource(Bucket(
     ),
 ))
 
+video_bucket = template.add_resource(Bucket(
+    'VideoBucket',
+))
+
 template.add_resource(QueuePolicy(
     "StartEncodingDestinationQueuesPolicy",
     Queues=[Ref(request_encoding_queue), Ref(processing_failed_queue)],
@@ -217,26 +244,103 @@ template.add_resource(EventInvokeConfig(
     ),
 ))
 
-mediaconvert_queue = template.add_resource(mediaconvert.Queue(
-    'MediaConvertQueue',
-    Name=Ref(AWS_STACK_NAME),
+elastictranscoder_custom_resource_role = template.add_resource(Role(
+    'ElasticTranscoderCustomResourceRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com"]},
+        }],
+    },
+    Policies=[Policy(
+        PolicyName="start-encode",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+                "Resource": "arn:aws:logs:*:*:*",
+                "Effect": "Allow",
+            }, {
+                "Effect": "Allow",
+                "Action": [
+                    "elastictranscoder:CreatePipeline",
+                    "elastictranscoder:DeletePipeline",
+                    "elastictranscoder:ReadPipeline",
+                    "elastictranscoder:UpdatePipeline"
+                ],
+                "Resource": "*"
+            }, {
+                "Action": ["iam:PassRole"],
+                "Effect": "Allow",
+                "Resource": "*"
+            }],
+        })],
 ))
 
-template.add_resource(Role(
-    "MediaConvertRole",
+elastictranscoder_custom_resource_function = template.add_resource(Function(
+    "ElasticTranscoderCustomResourceFunction",
+    Code=Code(
+        S3Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        S3Key=Ref(elastictranscoder_code_key),
+    ),
+    Handler='index.handler',
+    Role=GetAtt(elastictranscoder_custom_resource_role, "Arn"),
+    Runtime='nodejs10.x',
+))
+
+template.add_resource(LogGroup(
+    "ElasticTranscoderCustomResourceLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(elastictranscoder_custom_resource_function)]),
+    RetentionInDays=7,
+))
+
+transcoder_role = template.add_resource(Role(
+    "ElasticTranscoderPipelineRole",
     Policies=[Policy(
-        PolicyName="MediaConvertExecutionPolicy",
+        PolicyName="ElasticTranscoderExecutionPolicy",
         PolicyDocument={
             "Version": "2012-10-17",
             "Statement": [
                 {
                     "Effect": "Allow",
                     "Action": [
-                        "s3:*"  # Meh, could be a little stricter
+                        "logs:CreateLogGroup",
+                        "logs:CreateLogStream",
+                        "logs:PutLogEvents"
+                    ],
+                    "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "elastictranscoder:*",
+                        "iam:PassRole"
                     ],
                     "Resource": [
-                        Join("", ["arn:aws:s3:::", _upload_bucket_name]),
-                        Join("", ["arn:aws:s3:::", _upload_bucket_name, '/*'])
+                        "*"
+                    ]
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:Get*"
+                    ],
+                    "Resource": [
+                        GetAtt(upload_bucket, 'Arn'),
+                        Join('', [GetAtt(upload_bucket, 'Arn'), '/*']),
+                    ]
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:*"
+                    ],
+                    "Resource": [
+                        GetAtt(video_bucket, 'Arn'),
+                        Join('', [GetAtt(video_bucket, 'Arn'), '/*']),
                     ]
                 }
             ]
@@ -249,11 +353,53 @@ template.add_resource(Role(
             "Principal": {
                 "Service": [
                     "lambda.amazonaws.com",
-                    "mediaconvert.amazonaws.com"
+                    "elastictranscoder.amazonaws.com"
                 ]
             }
         }
     ]},
+))
+
+encoding_updates_queue = template.add_resource(Queue(
+    'EncodingUpdatesQueue',
+))
+
+encoding_updates_topic = template.add_resource(Topic(
+    'EncodingUpdatesTopic',
+    Subscription=[Subscription(
+        Endpoint=GetAtt(encoding_updates_queue, 'Arn'),
+        Protocol='sqs',
+    )],
+))
+
+template.add_resource(QueuePolicy(
+    "EncodingUpdatesQueuePolicy",
+    Queues=[Ref(encoding_updates_queue)],
+    PolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["sqs:SendMessage"],
+            "Resource": GetAtt(encoding_updates_queue, 'Arn'),
+            "Principal": {"Service": "sns.amazonaws.com"},
+            "Condition": {"ArnEquals": {"aws:SourceArn": Ref(encoding_updates_topic)}},
+        }],
+    },
+))
+
+template.add_resource(Pipeline(
+    "ElasticTranscoderPipeline",
+    ServiceToken=GetAtt(elastictranscoder_custom_resource_function, 'Arn'),
+    Name=Ref(AWS_STACK_NAME),
+    Role=GetAtt(transcoder_role, "Arn"),
+    InputBucket=Ref(upload_bucket),
+    OutputBucket=Ref(video_bucket),
+    Notifications={
+        'Completed': Ref(encoding_updates_topic),
+        'Error': Ref(encoding_updates_topic),
+        'Progressing': Ref(encoding_updates_topic),
+        'Warning': Ref(encoding_updates_topic),
+    },
 ))
 
 f = open("output/video_engine.json", "w")

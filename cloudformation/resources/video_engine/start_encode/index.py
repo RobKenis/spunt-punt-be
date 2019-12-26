@@ -11,7 +11,7 @@ dynamo = boto3.client('dynamodb')
 
 
 def handler(event, context):
-    video_ids = []
+    videos = []
     for record in event['Records']:
         print("Handling message with id: [{eventId}]".format(eventId=record['Sns']['MessageId']))
         msg = json.loads(record['Sns']['Message'])
@@ -30,10 +30,14 @@ def handler(event, context):
                 }
             )
             print("NEW_VIDEO_UPLOADED event for [{path}] saved.".format(path=notification['s3']['object']['key']))
-            video_ids.append(video_id)
+            videos.append({'videoId': video_id, 'path': notification['s3']['object']['key']})
     return {
         'statusCode': 200,
         'body': json.dumps({
-            'messages': list(map(lambda x: {'videoId': x, 'status': 'NEW_VIDEO_UPLOADED'}, video_ids))
+            'messages': list(map(lambda x: {
+                'videoId': x['videoId'],
+                'path': x['path'],
+                'status': 'NEW_VIDEO_UPLOADED'
+            }, videos))
         })
     }

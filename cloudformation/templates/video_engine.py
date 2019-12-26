@@ -93,6 +93,14 @@ processing_failed_queue = template.add_resource(Queue(
     'ProcessingFailedQueue',
 ))
 
+request_encoding_topic = template.add_resource(Topic(
+    'RequestEncodingTopic',
+    Subscription=[Subscription(
+        Protocol='sqs',
+        Endpoint=GetAtt(request_encoding_queue, 'Arn'),
+    )],
+))
+
 start_encode_lambda_role = template.add_resource(Role(
     'StartEncodeLambdaRole',
     Path="/",
@@ -123,6 +131,10 @@ start_encode_lambda_role = template.add_resource(Role(
             }, {
                 "Action": ["sqs:SendMessage"],
                 "Resource": [GetAtt(processing_failed_queue, 'Arn'), GetAtt(request_encoding_queue, 'Arn')],
+                "Effect": "Allow",
+            }, {
+                "Action": ["sns:Publish"],
+                "Resource": [Ref(request_encoding_topic)],
                 "Effect": "Allow",
             }],
         })],
@@ -236,6 +248,23 @@ template.add_resource(QueuePolicy(
     },
 ))
 
+template.add_resource(TopicPolicy(
+    'RequestEncodeTopicPolicy',
+    Topics=[Ref(request_encoding_topic)],
+    PolicyDocument={
+        "Version": "2008-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"Service": "lambda.amazonaws.com"},
+                "Action": ["SNS:Publish"],
+                "Resource": Ref(request_encoding_topic),
+                "Condition": {"ArnLike": {"aws:SourceArn": GetAtt(start_encode_function, 'Arn')}},
+            },
+        ],
+    },
+))
+
 template.add_resource(EventInvokeConfig(
     'StartEncodeInvokeConfig',
     FunctionName=Ref(start_encode_function),
@@ -244,7 +273,7 @@ template.add_resource(EventInvokeConfig(
     Qualifier='$LATEST',
     DestinationConfig=DestinationConfig(
         OnSuccess=OnSuccess(
-            Destination=GetAtt(request_encoding_queue, 'Arn'),
+            Destination=Ref(request_encoding_topic),
         ),
         OnFailure=OnFailure(
             Destination=GetAtt(processing_failed_queue, 'Arn'),
@@ -290,6 +319,7 @@ elastictranscoder_custom_resource_role = template.add_resource(Role(
 
 elastictranscoder_custom_resource_function = template.add_resource(Function(
     "ElasticTranscoderCustomResourceFunction",
+    Description='Creates the Elastic Transcoder Pipeline custom resource.',
     Code=Code(
         S3Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
         S3Key=Ref(elastictranscoder_code_key),

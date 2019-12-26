@@ -64,6 +64,12 @@ request_encoding_lambda_code_key = template.add_parameter(Parameter(
     Default='lambda-code/video_engine/request_encoding.zip',
 ))
 
+update_encoding_state_lambda_code_key = template.add_parameter(Parameter(
+    'UpdateEncodingState',
+    Type=constants.STRING,
+    Default='lambda-code/video_engine/update_encoding_state.zip',
+))
+
 elastictranscoder_code_key = template.add_parameter(Parameter(
     'ElasticTranscoder',
     Type=constants.STRING,
@@ -72,6 +78,7 @@ elastictranscoder_code_key = template.add_parameter(Parameter(
 
 template.add_parameter_to_group(start_encode_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(request_encoding_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(update_encoding_state_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(elastictranscoder_code_key, 'Lambda Keys')
 
 video_events_table = template.add_resource(Table(
@@ -444,6 +451,46 @@ template.add_resource(LogGroup(
     RetentionInDays=7,
 ))
 
+update_encoding_state_lambda_role = template.add_resource(Role(
+    'UpdateEncodingStateLambdaRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[Ref(lambda_managed_policy)],
+))
+
+update_encoding_state_function = template.add_resource(Function(
+    'UpdateEncodingStateFunction',
+    Description='Consumes Encoding state updates and saves them as events.',
+    Runtime='python3.7',
+    Handler='index.handler',
+    Role=GetAtt(update_encoding_state_lambda_role, 'Arn'),
+    Code=Code(
+        S3Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        S3Key=Ref(update_encoding_state_lambda_code_key),
+    ),
+    Environment=Environment(
+        Variables={
+            'VIDEO_EVENTS_TABLE': Ref(video_events_table),
+        }
+    ),
+    TracingConfig=TracingConfig(
+        Mode='Active',
+    ),
+))
+
+template.add_resource(LogGroup(
+    "UpdateEncodingStateLambdaLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(update_encoding_state_function)]),
+    RetentionInDays=7,
+))
+
 encoding_updates_queue = template.add_resource(Queue(
     'EncodingUpdatesQueue',
 ))
@@ -453,7 +500,18 @@ encoding_updates_topic = template.add_resource(Topic(
     Subscription=[Subscription(
         Endpoint=GetAtt(encoding_updates_queue, 'Arn'),
         Protocol='sqs',
+    ), Subscription(
+        Endpoint=GetAtt(update_encoding_state_function, 'Arn'),
+        Protocol='lambda',
     )],
+))
+
+template.add_resource(Permission(
+    'InvokeUpdateEncodingStateFunctionPermission',
+    Action='lambda:InvokeFunction',
+    FunctionName=Ref(update_encoding_state_function),
+    Principal='sns.amazonaws.com',
+    SourceArn=Ref(encoding_updates_topic),
 ))
 
 transcoder_role = template.add_resource(Role(

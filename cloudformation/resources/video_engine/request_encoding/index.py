@@ -55,7 +55,7 @@ def _request_encode(video_id, path):
         }],
         OutputKeyPrefix="{videoId}/".format(videoId=video_id),
         Playlists=[{
-            'Name': 'mpd',
+            'Name': video_id,
             'Format': 'MPEG-DASH',
             'OutputKeys': [
                 'mpd-video',

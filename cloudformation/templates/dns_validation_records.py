@@ -2,7 +2,10 @@ from troposphere import Template, Parameter, constants, Ref, ImportValue, Join
 from troposphere.route53 import RecordSetGroup, RecordSet
 
 RECORDS = {
-    '_aadf1927354323bb06fc14c09b832db9.spunt.be.': '_22d8e5703e27b0d967ba1f5221f8e7be.mzlfeqexyx.acm-validations.aws.',
+    '_aadf1927354323bb06fc14c09b832db9.spunt.be.':
+        '_22d8e5703e27b0d967ba1f5221f8e7be.mzlfeqexyx.acm-validations.aws.',
+    '_a7d41ed42e87702fb5ebf49d474086a2.videos.spunt.be.':
+        '_e4893dee46cfc65097d053d48d011668.mzlfeqexyx.acm-validations.aws.',
 }
 
 template = Template(Description='Spunt.be validation records')

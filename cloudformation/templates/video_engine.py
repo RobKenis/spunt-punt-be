@@ -1,13 +1,14 @@
 from troposphere import Template, Ref, Join, AWS_STACK_NAME, GetAtt, constants, Parameter, ImportValue, iam, \
-    AWSProperty, awslambda, ssm, AWS_REGION, AWS_ACCOUNT_ID
+    AWSProperty, awslambda, ssm, AWS_REGION, AWS_ACCOUNT_ID, Output, Export
 from troposphere.awslambda import Function, Environment, Code, EventInvokeConfig, OnFailure, \
     TracingConfig, Permission
 from troposphere.cloudformation import AWSCustomObject
+from troposphere.cloudfront import CloudFrontOriginAccessIdentity, CloudFrontOriginAccessIdentityConfig
 from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role, Policy, ManagedPolicy
 from troposphere.logs import LogGroup
 from troposphere.s3 import Bucket, NotificationConfiguration, TopicConfigurations, Filter, S3Key, Rules, \
-    CorsConfiguration, CorsRules
+    CorsConfiguration, CorsRules, BucketPolicy
 from troposphere.sns import Topic, TopicPolicy, Subscription
 from troposphere.sqs import Queue, QueuePolicy
 
@@ -345,6 +346,30 @@ video_bucket = template.add_resource(Bucket(
     ),
 ))
 
+video_oai = template.add_resource(CloudFrontOriginAccessIdentity(
+    'VideoOriginAccessIdentity',
+    CloudFrontOriginAccessIdentityConfig=CloudFrontOriginAccessIdentityConfig(
+        Comment=Join('', ['OAI for ', Ref(AWS_STACK_NAME), ' public videos.']),
+    ),
+))
+
+template.add_resource(BucketPolicy(
+    "VideoBucketPolicy",
+    Bucket=Ref(video_bucket),
+    PolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "OriginAccessIdentity",
+                "Effect": "Allow",
+                "Principal": {"CanonicalUser": GetAtt(video_oai, 'S3CanonicalUserId')},
+                "Action": ["s3:GetObject"],
+                "Resource": Join('', ["arn:aws:s3:::", Ref(video_bucket), "/*"]),
+            },
+        ],
+    },
+))
+
 template.add_resource(QueuePolicy(
     "StartEncodingDestinationQueuesPolicy",
     Queues=[Ref(request_encoding_queue), Ref(processing_failed_queue)],
@@ -605,6 +630,20 @@ template.add_resource(ssm.Parameter(
     Value=Ref(transcoder_pipeline),
     Name=_pipeline_id_parameter,
     Description='ID of the Elastic Transcoder Pipeline used for encoding.'
+))
+
+template.add_output(Output(
+    "VideoOriginAccessIdentity",
+    Description='CloudFront Origin Access Identity for the video bucket',
+    Value=Ref(video_oai),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'VideoOriginAccessIdentity', 'Ref'])),
+))
+
+template.add_output(Output(
+    "VideoBucket",
+    Description='Name of the bucket holding the public videos.',
+    Value=Ref(video_bucket),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'VideoBucket', 'Ref'])),
 ))
 
 f = open("output/video_engine.json", "w")

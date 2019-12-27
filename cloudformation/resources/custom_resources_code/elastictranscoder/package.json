@@ -1,0 +1,16 @@
+{
+  "name": "aws-cloudformation-elastic-transcoder-pipeline",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Warn: no test specified\" && exit 0",
+    "cfn-lambda-deploy": "node_modules/cfn-lambda/bin/cfn-lambda deploy"
+  },
+  "author": "Rob Kenis",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.5.3",
+    "cfn-lambda": "git+https://github.com/mazerte/cfn-lambda.git"
+  }
+}

@@ -3,6 +3,7 @@ from troposphere.route53 import RecordSetGroup, RecordSet
 
 RECORDS = {
     '_aadf1927354323bb06fc14c09b832db9.spunt.be.': '_22d8e5703e27b0d967ba1f5221f8e7be.mzlfeqexyx.acm-validations.aws.',
+    '_7c72059be53c034a76b7c714450b289f.login.spunt.be.': '_d3b6de5c096a463801dca57650b56a54.mzlfeqexyx.acm-validations.aws.'
 }
 
 template = Template(Description='Spunt.be validation records')

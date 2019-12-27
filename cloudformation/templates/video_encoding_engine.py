@@ -42,7 +42,7 @@ class Pipeline(AWSCustomObject):
     }
 
 
-template = Template(Description='Video engine for spunt.be')
+template = Template(Description='Video encoding engine for spunt.be')
 
 _upload_bucket_name = Join('-', [Ref(AWS_STACK_NAME), 'upload'])
 _pipeline_id_parameter = Join('.', [Ref(AWS_STACK_NAME), 'elastictranscoder', 'id'])
@@ -105,6 +105,10 @@ request_encoding_queue = template.add_resource(Queue(
     'RequestEncodingQueue',
 ))
 
+start_media_insights_queue = template.add_resource(Queue(
+    'StartMediaInsightsQueue',
+))
+
 processing_failed_queue = template.add_resource(Queue(
     'ProcessingFailedQueue',
 ))
@@ -137,6 +141,19 @@ lambda_managed_policy = template.add_resource(ManagedPolicy(
                 Ref(AWS_STACK_NAME),
                 '*'
             ])],
+            "Effect": "Allow",
+        }],
+    }
+))
+
+consume_insights_queue_policy = template.add_resource(ManagedPolicy(
+    'ConsumeMediaInsightsQueuePolicy',
+    Description='Allows consuming messages from the media-insights queue.',
+    PolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sqs:DeleteMessage", "sqs:ReceiveMessage", "sqs:GetQueueAttributes"],
+            "Resource": GetAtt(start_media_insights_queue, 'Arn'),
             "Effect": "Allow",
         }],
     }
@@ -288,7 +305,25 @@ upload_topic = template.add_resource(Topic(
     Subscription=[Subscription(
         Endpoint=GetAtt(start_encode_function, 'Arn'),
         Protocol='lambda',
+    ), Subscription(
+        Endpoint=GetAtt(start_media_insights_queue, 'Arn'),
+        Protocol='sqs',
     )],
+))
+
+template.add_resource(QueuePolicy(
+    "StartMediaInsightsQueuePolicy",
+    Queues=[Ref(start_media_insights_queue)],
+    PolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["sqs:SendMessage"],
+            "Resource": GetAtt(start_media_insights_queue, 'Arn'),
+            "Principal": {"Service": "sns.amazonaws.com"},
+            "Condition": {"ArnEquals": {"aws:SourceArn": Ref(upload_topic)}},
+        }],
+    },
 ))
 
 template.add_resource(TopicPolicy(
@@ -646,5 +681,33 @@ template.add_output(Output(
     Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'VideoBucket', 'Ref'])),
 ))
 
-f = open("output/video_engine.json", "w")
+template.add_output(Output(
+    "StartMediaInsightsQueue",
+    Description='ARN of the media-insights Q.',
+    Value=GetAtt(start_media_insights_queue, 'Arn'),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'StartMediaInsightsQueue', 'Arn'])),
+))
+
+template.add_output(Output(
+    "ConsumeMediaInsightsQueuePolicy",
+    Description='ARN of the managed policy that allows consuming the media-insights Q.',
+    Value=Ref(consume_insights_queue_policy),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'ConsumeMediaInsightsQueuePolicy', 'Arn'])),
+))
+
+template.add_output(Output(
+    "LambdaDefaultPolicy",
+    Description='ARN of the managed policy that allows basic lambda actions.',
+    Value=Ref(lambda_managed_policy),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'LambdaDefaultPolicy', 'Arn'])),
+))
+
+template.add_output(Output(
+    "VideoEventsTable",
+    Description='Name of the video-events table.',
+    Value=Ref(video_events_table),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'VideoEventsTable', 'Ref'])),
+))
+
+f = open("output/video_encoding_engine.json", "w")
 f.write(template.to_json())

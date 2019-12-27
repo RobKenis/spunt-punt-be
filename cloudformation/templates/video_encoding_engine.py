@@ -222,6 +222,9 @@ request_encoding_topic = template.add_resource(Topic(
     ), Subscription(
         Protocol='lambda',
         Endpoint=GetAtt(request_encoding_function, 'Arn'),
+    ), Subscription(
+        Protocol='sqs',
+        Endpoint=GetAtt(start_media_insights_queue, 'Arn'),
     )],
 ))
 
@@ -305,9 +308,6 @@ upload_topic = template.add_resource(Topic(
     Subscription=[Subscription(
         Endpoint=GetAtt(start_encode_function, 'Arn'),
         Protocol='lambda',
-    ), Subscription(
-        Endpoint=GetAtt(start_media_insights_queue, 'Arn'),
-        Protocol='sqs',
     )],
 ))
 
@@ -321,7 +321,7 @@ template.add_resource(QueuePolicy(
             "Action": ["sqs:SendMessage"],
             "Resource": GetAtt(start_media_insights_queue, 'Arn'),
             "Principal": {"Service": "sns.amazonaws.com"},
-            "Condition": {"ArnEquals": {"aws:SourceArn": Ref(upload_topic)}},
+            "Condition": {"ArnEquals": {"aws:SourceArn": Ref(request_encoding_topic)}},
         }],
     },
 ))

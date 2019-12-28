@@ -16,15 +16,17 @@ STACKS = {
 
 
 @task
-def build(c, docs=False):
-    print('Building CloudFormation . . .')
-    for filename in os.listdir(CLOUDFORMATION_TEMPLATES_DIR):
-        print("Building {file}".format(file=filename))
-        os.system("python {base}/{file}".
-                  format(base=CLOUDFORMATION_TEMPLATES_DIR, file=filename))
-        print("\t-> Finished building {file}".format(file=filename))
-    print('Building lambda code . . .')
-    os.system("./build.sh")
+def build(c, docs=False, code=False, templates=True):
+    if templates:
+        print('Building CloudFormation . . .')
+        for filename in os.listdir(CLOUDFORMATION_TEMPLATES_DIR):
+            print("Building {file}".format(file=filename))
+            os.system("python {base}/{file}".
+                      format(base=CLOUDFORMATION_TEMPLATES_DIR, file=filename))
+            print("\t-> Finished building {file}".format(file=filename))
+    if code:
+        print('Building lambda code . . .')
+        os.system("./build.sh")
 
 
 @task

@@ -64,6 +64,8 @@ spunt_be_client = template.add_resource(UserPoolClient(
     'SpuntCognitoClient',
     UserPoolId=Ref(user_pool),
     ClientName='spunt-users',
+    AllowedOAuthFlows=['token'],
+    AllowedOAuthScopes=['profile'],
     CallbackURLs=['https://spunt.be/login'],  # TODO: Store this somewhere
     LogoutURLs=['https://spunt.be/logout'],
     SupportedIdentityProviders=['COGNITO'],  # TODO: Add facebook and google

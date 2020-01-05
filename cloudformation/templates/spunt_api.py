@@ -65,10 +65,17 @@ recommended_videos_lambda_code_key = template.add_parameter(Parameter(
     Default='lambda-code/api/recommended_videos.zip',
 ))
 
+rewrite_downvote_lambda_code_key = template.add_parameter(Parameter(
+    'RewriteDownvote',
+    Type=constants.STRING,
+    Default='lambda-code/api/rewrite_downvote.zip',
+))
+
 template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(trending_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(hot_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(recommended_videos_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(rewrite_downvote_lambda_code_key, 'Lambda Keys')
 
 cloudfront_certificate = template.add_resource(Certificate(
     "CloudFrontCertificate",
@@ -96,6 +103,20 @@ health_resource = template.add_resource(Resource(
     ParentId=GetAtt(api_gateway, "RootResourceId"),
 ))
 
+upvote_resource = template.add_resource(Resource(
+    'UpvoteResource',
+    RestApiId=Ref(api_gateway),
+    PathPart="upvote",
+    ParentId=GetAtt(api_gateway, "RootResourceId"),
+))
+
+upload_resource = template.add_resource(Resource(
+    'UploadResource',
+    RestApiId=Ref(api_gateway),
+    PathPart="upload",
+    ParentId=GetAtt(api_gateway, "RootResourceId"),
+))
+
 health_model = template.add_resource(Model(
     'HealthModel',
     ContentType='application/json',
@@ -119,6 +140,70 @@ health_method = template.add_resource(Method(
     AuthorizationType="NONE",
     ResourceId=Ref(health_resource),
     HttpMethod="GET",
+    OperationName='mock',
+    Integration=Integration(
+        Type='MOCK',
+        IntegrationResponses=[IntegrationResponse(
+            ResponseTemplates={
+                'application/json': "{\"message\": \"OK\"}"
+            },
+            StatusCode='200'
+        )],
+        PassthroughBehavior='WHEN_NO_TEMPLATES',
+        RequestTemplates={
+            'application/json': "{\"statusCode\": 200, \"message\": \"OK\"}"
+        },
+    ),
+    MethodResponses=[
+        MethodResponse(
+            'HealthResponse',
+            ResponseModels={
+                'application/json': Ref(health_model),
+            },
+            StatusCode='200',
+        )
+    ],
+))
+
+upvote_method = template.add_resource(Method(
+    "UpvoteMethod",
+    ApiKeyRequired=True,
+    RestApiId=Ref(api_gateway),
+    AuthorizationType="NONE",
+    ResourceId=Ref(upvote_resource),
+    HttpMethod="POST",
+    OperationName='mock',
+    Integration=Integration(
+        Type='MOCK',
+        IntegrationResponses=[IntegrationResponse(
+            ResponseTemplates={
+                'application/json': "{\"message\": \"OK\"}"
+            },
+            StatusCode='200'
+        )],
+        PassthroughBehavior='WHEN_NO_TEMPLATES',
+        RequestTemplates={
+            'application/json': "{\"statusCode\": 200, \"message\": \"OK\"}"
+        },
+    ),
+    MethodResponses=[
+        MethodResponse(
+            'HealthResponse',
+            ResponseModels={
+                'application/json': Ref(health_model),
+            },
+            StatusCode='200',
+        )
+    ],
+))
+
+upload_method = template.add_resource(Method(
+    "UploadMethod",
+    ApiKeyRequired=True,
+    RestApiId=Ref(api_gateway),
+    AuthorizationType="NONE",
+    ResourceId=Ref(upload_resource),
+    HttpMethod="POST",
     OperationName='mock',
     Integration=Integration(
         Type='MOCK',
@@ -222,11 +307,11 @@ all_videos_function = template.add_resource(Function(
     Runtime='nodejs10.x',
     Handler='index.handler',
     Role=GetAtt(readonly_function_role, 'Arn'),
+    AutoPublishAlias='live',
     CodeUri=S3Location(
         Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
         Key=Ref(all_videos_lambda_code_key),
     ),
-    AutoPublishAlias='live',
 ))
 
 trending_videos_function = template.add_resource(Function(
@@ -235,11 +320,11 @@ trending_videos_function = template.add_resource(Function(
     Runtime='nodejs10.x',
     Handler='index.handler',
     Role=GetAtt(readonly_function_role, 'Arn'),
+    AutoPublishAlias='live',
     CodeUri=S3Location(
         Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
         Key=Ref(trending_videos_lambda_code_key),
     ),
-    AutoPublishAlias='live',
 ))
 
 hot_videos_function = template.add_resource(Function(
@@ -248,11 +333,11 @@ hot_videos_function = template.add_resource(Function(
     Runtime='nodejs10.x',
     Handler='index.handler',
     Role=GetAtt(readonly_function_role, 'Arn'),
+    AutoPublishAlias='live',
     CodeUri=S3Location(
         Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
         Key=Ref(hot_videos_lambda_code_key),
     ),
-    AutoPublishAlias='live',
 ))
 
 recommended_videos_function = template.add_resource(Function(
@@ -261,11 +346,24 @@ recommended_videos_function = template.add_resource(Function(
     Runtime='nodejs10.x',
     Handler='index.handler',
     Role=GetAtt(readonly_function_role, 'Arn'),
+    AutoPublishAlias='live',
     CodeUri=S3Location(
         Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
         Key=Ref(recommended_videos_lambda_code_key),
     ),
+))
+
+rewrite_downvote_function = template.add_resource(Function(
+    'RewriteDownvoteFunction',
+    Description='Rewrite /v1/downvote to /v1/upvote.',
+    Runtime='nodejs10.x',
+    Handler='index.handler',
+    Role=GetAtt(readonly_function_role, 'Arn'),
     AutoPublishAlias='live',
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(rewrite_downvote_lambda_code_key),
+    ),
 ))
 
 api_cdn = template.add_resource(Distribution(
@@ -353,6 +451,23 @@ api_cdn = template.add_resource(Distribution(
             LambdaFunctionAssociations=[LambdaFunctionAssociation(
                 EventType='origin-request',
                 LambdaFunctionARN=VersionRef(recommended_videos_function),
+            )],
+        ), CacheBehavior(
+            TargetOriginId="apigateway",
+            PathPattern='/v1/downvote',
+            ViewerProtocolPolicy='redirect-to-https',
+            AllowedMethods=['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'],
+            CachedMethods=['GET', 'HEAD', 'OPTIONS'],
+            ForwardedValues=ForwardedValues(
+                QueryString=False,
+            ),
+            MinTTL=120,  # 2 minutes
+            DefaultTTL=300,  # 5 minutes
+            MaxTTL=300,  # 5 minutes
+            Compress=True,
+            LambdaFunctionAssociations=[LambdaFunctionAssociation(
+                EventType='origin-request',
+                LambdaFunctionARN=VersionRef(rewrite_downvote_function),
             )],
         )],
         Enabled=True,

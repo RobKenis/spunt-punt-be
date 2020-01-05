@@ -48,3 +48,8 @@ cd resources/spunt_api/recommended_videos/
 zip -r recommended_videos.zip index.js
 mv recommended_videos.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/rewrite_downvote/
+zip -r rewrite_downvote.zip index.js
+mv rewrite_downvote.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY

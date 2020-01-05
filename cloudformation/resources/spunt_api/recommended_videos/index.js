@@ -34,7 +34,7 @@ exports.handler = (event, context, callback) => {
     const response = {
         status: '200',
         statusDescription: 'OK',
-        body: body,
+        body: JSON.stringify(body),
     };
     callback(null, response);
 };

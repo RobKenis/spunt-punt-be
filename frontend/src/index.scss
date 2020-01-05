@@ -1,5 +1,14 @@
-@import "src/variables";
-@import "~bulma/sass/base/all";
-@import "~bulma/sass/elements/all";
-@import "~bulma/sass/components/all";
-@import "src/overrides";
+@import url("https://fonts.googleapis.com/css?family=Fira+Sans:400,400i,700,700i&display=swap");
+
+@import "./variables";
+@import "./node_modules/bulma/sass/base/all";
+@import "./node_modules/bulma/sass/elements/all";
+@import "./node_modules/bulma/sass/components/all";
+
+.section {
+  padding: 0 .75rem;
+
+  @media screen and (min-width: $desktop) {
+    padding: 1rem 0;
+  }
+}

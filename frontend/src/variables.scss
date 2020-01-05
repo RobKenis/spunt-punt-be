@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css?family=Fira+Sans:400,400i,700,700i&display=swap");
-
 $grey-lighter: #dbdee0;
 $grey-light: #8c9b9d;
 $grey: darken($grey-light, 18);
@@ -102,4 +100,4 @@ $progress-value-background-color: $grey-lighter;
 
 $bulmaswatch-import-font: true !default;
 
-@import "~bulma/sass/utilities/all";
+@import "./node_modules/bulma/sass/utilities/all";

@@ -1,16 +1,27 @@
-from troposphere import Template, AWS_STACK_NAME, Ref, ImportValue, GetAtt, Join, Parameter, constants, AWS_REGION
+from troposphere import Template, AWS_STACK_NAME, Ref, ImportValue, GetAtt, Join, Parameter, constants, AWS_REGION, iam, \
+    AWSHelperFn
 from troposphere.apigateway import RestApi, EndpointConfiguration, Resource, Method, Integration, MethodResponse, Model, \
     IntegrationResponse, Deployment, Stage, ApiKey, StageKey, UsagePlan, QuotaSettings, ApiStage, UsagePlanKey, \
     ThrottleSettings
 from troposphere.certificatemanager import Certificate, DomainValidationOption
 from troposphere.cloudfront import Distribution, DistributionConfig, DefaultCacheBehavior, ViewerCertificate, \
-    ForwardedValues, Origin, CustomOriginConfig, OriginCustomHeader
+    ForwardedValues, Origin, CustomOriginConfig, OriginCustomHeader, CacheBehavior, LambdaFunctionAssociation
+from troposphere.iam import Role
 from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
+from troposphere.serverless import Function, S3Location
+
+
+class VersionRef(AWSHelperFn):
+    def __init__(self, data):
+        func = self.getdata(data)
+        self.data = {'Ref': "{function}.Version".format(function=func)}
+
 
 stage_name = 'v1'
 api_key_secret = 'yeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeet'
 
 template = Template(Description='API for spunt.be')
+template.set_transform('AWS::Serverless-2016-10-31')
 
 dns_stack = template.add_parameter(Parameter(
     'DnsStack',
@@ -18,11 +29,46 @@ dns_stack = template.add_parameter(Parameter(
     Default='spunt-punt-be-dns',
 ))
 
+core_stack = template.add_parameter(Parameter(
+    'CoreStack',
+    Type=constants.STRING,
+    Default='spunt-core',
+))
+
 domain_name = template.add_parameter(Parameter(
     'DomainName',
     Type=constants.STRING,
     Default='api.spunt.be',
 ))
+
+all_videos_lambda_code_key = template.add_parameter(Parameter(
+    'AllVideos',
+    Type=constants.STRING,
+    Default='lambda-code/api/all_videos.zip',
+))
+
+trending_videos_lambda_code_key = template.add_parameter(Parameter(
+    'TrendingVideos',
+    Type=constants.STRING,
+    Default='lambda-code/api/trending_videos.zip',
+))
+
+hot_videos_lambda_code_key = template.add_parameter(Parameter(
+    'HotVideos',
+    Type=constants.STRING,
+    Default='lambda-code/api/hot_videos.zip',
+))
+
+recommended_videos_lambda_code_key = template.add_parameter(Parameter(
+    'Recommended',
+    Type=constants.STRING,
+    Default='lambda-code/api/recommended_videos.zip',
+))
+
+template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(trending_videos_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(hot_videos_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(recommended_videos_lambda_code_key, 'Lambda Keys')
 
 cloudfront_certificate = template.add_resource(Certificate(
     "CloudFrontCertificate",
@@ -147,6 +193,81 @@ usagePlanKey = template.add_resource(UsagePlanKey(
     UsagePlanId=Ref(usagePlan),
 ))
 
+readonly_function_role = template.add_resource(Role(
+    'ReadonlyVideoApiRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com", "edgelambda.amazonaws.com"]},
+        }],
+    },
+    Policies=[iam.Policy(
+        PolicyName="video-api-readonly",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+                "Resource": "arn:aws:logs:*:*:*",
+                "Effect": "Allow",
+            }],
+        })],
+))
+
+all_videos_function = template.add_resource(Function(
+    'AllVideosFunction',
+    Description='Returns list of random videos.',
+    Runtime='nodejs10.x',
+    Handler='index.handler',
+    Role=GetAtt(readonly_function_role, 'Arn'),
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(all_videos_lambda_code_key),
+    ),
+    AutoPublishAlias='live',
+))
+
+trending_videos_function = template.add_resource(Function(
+    'TrendingVideosFunction',
+    Description='Returns list of videos that will become hot, based on Forecast.',
+    Runtime='nodejs10.x',
+    Handler='index.handler',
+    Role=GetAtt(readonly_function_role, 'Arn'),
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(trending_videos_lambda_code_key),
+    ),
+    AutoPublishAlias='live',
+))
+
+hot_videos_function = template.add_resource(Function(
+    'HotVideosFunction',
+    Description='Returns list of videos that have a lot of upvotes in the last x hours.',
+    Runtime='nodejs10.x',
+    Handler='index.handler',
+    Role=GetAtt(readonly_function_role, 'Arn'),
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(hot_videos_lambda_code_key),
+    ),
+    AutoPublishAlias='live',
+))
+
+recommended_videos_function = template.add_resource(Function(
+    'RecommendedVideosFunction',
+    Description='Returns list videos recommended for the user, based on Personalize.',
+    Runtime='nodejs10.x',
+    Handler='index.handler',
+    Role=GetAtt(readonly_function_role, 'Arn'),
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(recommended_videos_lambda_code_key),
+    ),
+    AutoPublishAlias='live',
+))
+
 api_cdn = template.add_resource(Distribution(
     "ApiDistribution",
     DistributionConfig=DistributionConfig(
@@ -162,8 +283,78 @@ api_cdn = template.add_resource(Distribution(
             ),
             MinTTL=120,  # 2 minutes
             DefaultTTL=300,  # 5 minutes
-            MaxTTL=300  # 5 minutes
+            MaxTTL=300,  # 5 minutes
+            Compress=True,
         ),
+        CacheBehaviors=[CacheBehavior(
+            TargetOriginId="apigateway",
+            PathPattern='/videos/all',
+            ViewerProtocolPolicy='redirect-to-https',
+            AllowedMethods=['GET', 'HEAD', 'OPTIONS'],
+            CachedMethods=['GET', 'HEAD', 'OPTIONS'],
+            ForwardedValues=ForwardedValues(
+                QueryString=False,
+            ),
+            MinTTL=120,  # 2 minutes
+            DefaultTTL=300,  # 5 minutes
+            MaxTTL=300,  # 5 minutes
+            Compress=True,
+            LambdaFunctionAssociations=[LambdaFunctionAssociation(
+                EventType='origin-request',
+                LambdaFunctionARN=VersionRef(all_videos_function),
+            )],
+        ), CacheBehavior(
+            TargetOriginId="apigateway",
+            PathPattern='/videos/trending',
+            ViewerProtocolPolicy='redirect-to-https',
+            AllowedMethods=['GET', 'HEAD', 'OPTIONS'],
+            CachedMethods=['GET', 'HEAD', 'OPTIONS'],
+            ForwardedValues=ForwardedValues(
+                QueryString=False,
+            ),
+            MinTTL=120,  # 2 minutes
+            DefaultTTL=300,  # 5 minutes
+            MaxTTL=300,  # 5 minutes
+            Compress=True,
+            LambdaFunctionAssociations=[LambdaFunctionAssociation(
+                EventType='origin-request',
+                LambdaFunctionARN=VersionRef(trending_videos_function),
+            )],
+        ), CacheBehavior(
+            TargetOriginId="apigateway",
+            PathPattern='/videos/hot',
+            ViewerProtocolPolicy='redirect-to-https',
+            AllowedMethods=['GET', 'HEAD', 'OPTIONS'],
+            CachedMethods=['GET', 'HEAD', 'OPTIONS'],
+            ForwardedValues=ForwardedValues(
+                QueryString=False,
+            ),
+            MinTTL=120,  # 2 minutes
+            DefaultTTL=300,  # 5 minutes
+            MaxTTL=300,  # 5 minutes
+            Compress=True,
+            LambdaFunctionAssociations=[LambdaFunctionAssociation(
+                EventType='origin-request',
+                LambdaFunctionARN=VersionRef(hot_videos_function),
+            )],
+        ), CacheBehavior(
+            TargetOriginId="apigateway",
+            PathPattern='/videos/recommendations',
+            ViewerProtocolPolicy='redirect-to-https',
+            AllowedMethods=['GET', 'HEAD', 'OPTIONS'],
+            CachedMethods=['GET', 'HEAD', 'OPTIONS'],
+            ForwardedValues=ForwardedValues(
+                QueryString=False,
+            ),
+            MinTTL=120,  # 2 minutes
+            DefaultTTL=300,  # 5 minutes
+            MaxTTL=300,  # 5 minutes
+            Compress=True,
+            LambdaFunctionAssociations=[LambdaFunctionAssociation(
+                EventType='origin-request',
+                LambdaFunctionARN=VersionRef(recommended_videos_function),
+            )],
+        )],
         Enabled=True,
         HttpVersion='http2',
         IPV6Enabled=True,

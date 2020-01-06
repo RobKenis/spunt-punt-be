@@ -28,3 +28,28 @@ yarn install
 zip -r elastictranscoder.zip index.js node_modules/
 mv elastictranscoder.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/all_videos/
+zip -r all_videos.zip index.js
+mv all_videos.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/trending_videos/
+zip -r trending_videos.zip index.js
+mv trending_videos.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/hot_videos/
+zip -r hot_videos.zip index.js
+mv hot_videos.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/recommended_videos/
+zip -r recommended_videos.zip index.js
+mv recommended_videos.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/rewrite_downvote/
+zip -r rewrite_downvote.zip index.js
+mv rewrite_downvote.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY

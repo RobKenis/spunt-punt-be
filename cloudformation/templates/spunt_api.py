@@ -353,8 +353,8 @@ recommended_videos_function = template.add_resource(Function(
     ),
 ))
 
-rewrite_downvote_function = template.add_resource(Function(
-    'RewriteDownvoteFunction',
+downvote_rewrite_function = template.add_resource(Function(
+    'DownvoteRewriteFunction',
     Description='Rewrite /v1/downvote to /v1/upvote.',
     Runtime='nodejs10.x',
     Handler='index.handler',
@@ -467,7 +467,7 @@ api_cdn = template.add_resource(Distribution(
             Compress=True,
             LambdaFunctionAssociations=[LambdaFunctionAssociation(
                 EventType='origin-request',
-                LambdaFunctionARN=VersionRef(rewrite_downvote_function),
+                LambdaFunctionARN=VersionRef(downvote_rewrite_function),
             )],
         )],
         Enabled=True,

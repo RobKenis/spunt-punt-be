@@ -5,14 +5,11 @@ import "./VideoGrid.scss";
 export class VideoGrid extends Component {
   render() {
     return (
-      <>
-        <h1 className="title">Home</h1>
-        <div className="video-grid">
-          {this.props.videos.map((video, index) => (
-            <VideoPreview key={index} video={video} />
-          ))}
-        </div>
-      </>
+      <div className="video-grid">
+        {this.props.videos.map((video, index) => (
+          <VideoPreview key={index} video={video} />
+        ))}
+      </div>
     );
   }
 }

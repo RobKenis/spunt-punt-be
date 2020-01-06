@@ -1,46 +1,21 @@
-export const getRecentVideos = () => {
-  return [
-    {
-      id: "3e72bdc6-28e3-11ea-abb5-5a2040ddf892",
-      title: "Very pretty title",
-      playbackUrl:
-        "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd",
-    },
-    {
-      id: "3e72bdc6-28e3-11ea-abb5-5a2040ddf892",
-      title: "Very pretty title",
-      playbackUrl:
-        "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd",
-    },
-    {
-      id: "3e72bdc6-28e3-11ea-abb5-5a2040ddf892",
-      title: "Very pretty title",
-      playbackUrl:
-        "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd",
-    },
-    {
-      id: "3e72bdc6-28e3-11ea-abb5-5a2040ddf892",
-      title: "Very pretty title",
-      playbackUrl:
-        "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd",
-    },
-    {
-      id: "3e72bdc6-28e3-11ea-abb5-5a2040ddf892",
-      title: "Very pretty title",
-      playbackUrl:
-        "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd",
-    },
-    {
-      id: "3e72bdc6-28e3-11ea-abb5-5a2040ddf892",
-      title: "Very pretty title",
-      playbackUrl:
-        "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd",
-    },
-    {
-      id: "3e72bdc6-28e3-11ea-abb5-5a2040ddf892",
-      title: "Very pretty title",
-      playbackUrl:
-        "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd",
-    },
-  ];
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: "https://api.spunt.be/",
+});
+
+export const getAllVideos = () => {
+  return api.get("/videos/all");
+};
+
+export const getHotVideos = () => {
+  return api.get("/videos/hot");
+};
+
+export const getTrendingVideos = () => {
+  return api.get("/videos/trending");
+};
+
+export const getRecommendedVideos = () => {
+  return api.get("/videos/recommendations");
 };

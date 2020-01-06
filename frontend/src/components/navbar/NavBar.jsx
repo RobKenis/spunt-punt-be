@@ -40,8 +40,8 @@ export class NavBar extends Component {
               <a className="navbar-item" href="/">
                 <FontAwesomeIcon icon={faHome} size="sm" className="navbar-item-icon" fixedWidth /> Home
               </a>
-              <a className="navbar-item" href="/popular">
-                <FontAwesomeIcon icon={faFire} size="sm" className="navbar-item-icon" fixedWidth /> Popular
+              <a className="navbar-item" href="/hot">
+                <FontAwesomeIcon icon={faFire} size="sm" className="navbar-item-icon" fixedWidth /> Hot
               </a>
               <a className="navbar-item" href="/trending">
                 <FontAwesomeIcon icon={faBolt} size="sm" className="navbar-item-icon" fixedWidth /> Trending

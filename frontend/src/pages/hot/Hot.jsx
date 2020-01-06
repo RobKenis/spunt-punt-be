@@ -1,14 +1,14 @@
 import React, { Component } from "react";
-import { getAllVideos } from "../../api/VideoApiClient";
+import { getHotVideos } from "../../api/VideoApiClient";
 import { VideoGrid } from "../../components/video-grid/VideoGrid";
 
-export class Home extends Component {
+export class Hot extends Component {
   state = {
     videos: [],
   };
 
   componentDidMount() {
-    getAllVideos().then((response) => {
+    getHotVideos().then((response) => {
       this.setState({
         videos: response.data.videos,
       });
@@ -18,7 +18,7 @@ export class Home extends Component {
   render() {
     return (
       <section className="container section">
-        <h1 className="title">Home</h1>
+        <h1 className="title">Hot</h1>
         <VideoGrid videos={this.state.videos} />
       </section>
     );

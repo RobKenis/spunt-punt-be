@@ -1,0 +1,61 @@
+{
+  "name": "spunt-punt-be",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "start": "parcel index.html --no-source-maps --open",
+    "build": "parcel build index.html"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.26",
+    "@fortawesome/free-solid-svg-icons": "^5.12.0",
+    "@fortawesome/react-fontawesome": "^0.1.8",
+    "axios": "^0.19.0",
+    "bulma": "^0.8.0",
+    "react": "^16.9.0",
+    "react-dom": "^16.9.0",
+    "react-router-dom": "^5.1.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.5.5",
+    "babel-preset-nano-react-app": "^0.1.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.9.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "husky": "^3.1.0",
+    "lint-staged": "^9.5.0",
+    "parcel-bundler": "^1.12.3",
+    "prettier": "^1.19.1",
+    "sass": "^1.24.2"
+  },
+  "babel": {
+    "presets": [
+      "nano-react-app"
+    ],
+    "plugins": [
+      [
+        "@babel/plugin-proposal-class-properties",
+        {
+          "loose": true
+        }
+      ],
+      [
+        "@babel/plugin-transform-react-jsx",
+        {
+          "pragmaFrag": "React.Fragment"
+        }
+      ]
+    ]
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,json}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  }
+}

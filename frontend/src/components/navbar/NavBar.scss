@@ -1,0 +1,36 @@
+@import "src/variables";
+
+.navbar {
+  margin-bottom: 2rem;
+
+  .navbar-item {
+    font-size: 1.2em;
+  }
+
+  .navbar-brand-icon {
+    font-size: 1.8em;
+
+    span {
+      color: $primary;
+    }
+  }
+
+  .navbar-item-icon {
+    margin-right: 0;
+
+    @media screen and (min-width: $desktop) {
+      margin-right: .3em;
+    }
+  }
+
+  .button {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+
+    @media screen and (min-width: $desktop) {
+      justify-content: flex-start;
+      width: auto;
+    }
+  }
+}

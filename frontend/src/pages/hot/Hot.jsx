@@ -7,7 +7,8 @@ export class Hot extends Component {
     videos: [],
   };
 
-  componentDidMount() {
+  constructor(props, context) {
+    super(props, context);
     getHotVideos().then((response) => {
       this.setState({
         videos: response.data.videos,

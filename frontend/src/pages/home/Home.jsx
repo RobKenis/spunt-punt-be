@@ -7,7 +7,8 @@ export class Home extends Component {
     videos: [],
   };
 
-  componentDidMount() {
+  constructor(props, context) {
+    super(props, context);
     getAllVideos().then((response) => {
       this.setState({
         videos: response.data.videos,

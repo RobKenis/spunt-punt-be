@@ -7,7 +7,8 @@ export class Trending extends Component {
     videos: [],
   };
 
-  componentDidMount() {
+  constructor(props, context) {
+    super(props, context);
     getTrendingVideos().then((response) => {
       this.setState({
         videos: response.data.videos,

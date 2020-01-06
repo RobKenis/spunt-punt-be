@@ -16,3 +16,7 @@ yarn-error.log*
 
 # Platform files
 .DS_Store
+
+# Environment files
+.env
+.env.*

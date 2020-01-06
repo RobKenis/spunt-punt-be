@@ -1,10 +1,10 @@
 $grey-lighter: #dbdee0;
-$grey-light: #8c9b9d;
-$grey: darken($grey-light, 18);
-$grey-dark: darken($grey, 18);
-$grey-darker: darken($grey, 23);
+$grey-light: darken($grey-lighter, 25);
+$grey: darken($grey-light, 20);
+$grey-dark: darken($grey, 20);
+$grey-darker: darken($grey, 20);
 
-$primary: #375a7f;
+$primary: #bada55;
 $orange: #e67e22;
 $yellow: #f1b70e;
 $green: #2ecc71;
@@ -26,6 +26,12 @@ $size-7: .85em;
 $title-weight: 500;
 $subtitle-weight: 400;
 $subtitle-color: $grey-dark;
+
+$spacing-xs: 0.10rem;
+$spacing-sm: 0.25rem;
+$spacing-md: 0.50rem;
+$spacing-lg: 0.75rem;
+$spacing-xl: 1.00rem;
 
 $border-width: 2px;
 $border: $grey;

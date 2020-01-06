@@ -7,11 +7,19 @@
     font-size: 1.2em;
   }
 
-  .navbar-icon {
+  .navbar-brand-icon {
     font-size: 1.8em;
 
     span {
       color: $primary;
+    }
+  }
+
+  .navbar-item-icon {
+    margin-right: 0;
+
+    @media screen and (min-width: $desktop) {
+      margin-right: .3em;
     }
   }
 

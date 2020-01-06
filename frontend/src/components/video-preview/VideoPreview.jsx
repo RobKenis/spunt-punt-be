@@ -5,7 +5,7 @@ export class VideoPreview extends Component {
   render() {
     return (
       <div className="video-preview">
-        <img src="https://placekitten.com/400/225" alt={this.props.video.title} />
+        <img src="https://placekitten.com/720/405" alt={this.props.video.title} />
         <h3>{this.props.video.title}</h3>
       </div>
     );

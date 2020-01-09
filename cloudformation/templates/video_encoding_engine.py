@@ -1,10 +1,9 @@
 from troposphere import Template, Ref, Join, AWS_STACK_NAME, GetAtt, constants, Parameter, ImportValue, iam, \
-    AWSProperty, awslambda, ssm, AWS_REGION, AWS_ACCOUNT_ID, Output, Export
+    AWSProperty, awslambda, ssm, Output, Export
 from troposphere.awslambda import Function, Environment, Code, EventInvokeConfig, OnFailure, \
     TracingConfig, Permission
 from troposphere.cloudformation import AWSCustomObject
 from troposphere.cloudfront import CloudFrontOriginAccessIdentity, CloudFrontOriginAccessIdentityConfig
-from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role, Policy, ManagedPolicy
 from troposphere.logs import LogGroup
 from troposphere.s3 import Bucket, NotificationConfiguration, TopicConfigurations, Filter, S3Key, Rules, \
@@ -82,24 +81,8 @@ template.add_parameter_to_group(request_encoding_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(update_encoding_state_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(elastictranscoder_code_key, 'Lambda Keys')
 
-video_events_table = template.add_resource(Table(
-    'VideoEventsTable',
-    BillingMode='PAY_PER_REQUEST',
-    AttributeDefinitions=[AttributeDefinition(
-        AttributeName='videoId',
-        AttributeType='S',
-    ), AttributeDefinition(
-        AttributeName='timestamp',
-        AttributeType='S',
-    )],
-    KeySchema=[KeySchema(
-        AttributeName='videoId',
-        KeyType='HASH',
-    ), KeySchema(
-        AttributeName='timestamp',
-        KeyType='RANGE',
-    )],
-))
+_video_events_table = ImportValue(Join('-', [Ref(core_stack), 'VideoEventsTable', 'Ref']))
+_lambda_managed_policy = ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn']))
 
 request_encoding_queue = template.add_resource(Queue(
     'RequestEncodingQueue',
@@ -113,38 +96,6 @@ processing_failed_queue = template.add_resource(Queue(
     'ProcessingFailedQueue',
 ))
 
-lambda_managed_policy = template.add_resource(ManagedPolicy(
-    'LambdaDefaultPolicy',
-    Description='Allows default actions for video-engine lambdas',
-    PolicyDocument={
-        "Version": "2012-10-17",
-        "Statement": [{
-            "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
-            "Resource": "arn:aws:logs:*:*:*",
-            "Effect": "Allow",
-        }, {
-            "Action": ["xray:PutTraceSegments"],
-            "Resource": "*",
-            "Effect": "Allow",
-        }, {
-            "Action": ["dynamodb:PutItem"],
-            "Resource": [GetAtt(video_events_table, 'Arn')],
-            "Effect": "Allow",
-        }, {
-            "Action": ["ssm:GetParameter"],
-            "Resource": [Join('', [
-                'arn:aws:ssm:',
-                Ref(AWS_REGION),
-                ':',
-                Ref(AWS_ACCOUNT_ID),
-                ':parameter/',
-                Ref(AWS_STACK_NAME),
-                '*'
-            ])],
-            "Effect": "Allow",
-        }],
-    }
-))
 
 consume_insights_queue_policy = template.add_resource(ManagedPolicy(
     'ConsumeMediaInsightsQueuePolicy',
@@ -170,7 +121,7 @@ request_encoding_lambda_role = template.add_resource(Role(
             "Principal": {"Service": ["lambda.amazonaws.com"]},
         }],
     },
-    ManagedPolicyArns=[Ref(lambda_managed_policy)],
+    ManagedPolicyArns=[_lambda_managed_policy],
     Policies=[iam.Policy(
         PolicyName="request-encoding",
         PolicyDocument={
@@ -199,7 +150,7 @@ request_encoding_function = template.add_resource(Function(
     ),
     Environment=Environment(
         Variables={
-            'VIDEO_EVENTS_TABLE': Ref(video_events_table),
+            'VIDEO_EVENTS_TABLE': _video_events_table,
             'PIPELINE_ID_PARAMETER': _pipeline_id_parameter,
         }
     ),
@@ -260,7 +211,7 @@ start_encode_lambda_role = template.add_resource(Role(
             "Principal": {"Service": ["lambda.amazonaws.com"]},
         }],
     },
-    ManagedPolicyArns=[Ref(lambda_managed_policy)],
+    ManagedPolicyArns=[_lambda_managed_policy],
     Policies=[iam.Policy(
         PolicyName="start-encode",
         PolicyDocument={
@@ -289,7 +240,7 @@ start_encode_function = template.add_resource(Function(
     ),
     Environment=Environment(
         Variables={
-            'VIDEO_EVENTS_TABLE': Ref(video_events_table),
+            'VIDEO_EVENTS_TABLE': _video_events_table,
         }
     ),
     TracingConfig=TracingConfig(
@@ -522,7 +473,7 @@ update_encoding_state_lambda_role = template.add_resource(Role(
             "Principal": {"Service": ["lambda.amazonaws.com"]},
         }],
     },
-    ManagedPolicyArns=[Ref(lambda_managed_policy)],
+    ManagedPolicyArns=[_lambda_managed_policy],
 ))
 
 update_encoding_state_function = template.add_resource(Function(
@@ -537,7 +488,7 @@ update_encoding_state_function = template.add_resource(Function(
     ),
     Environment=Environment(
         Variables={
-            'VIDEO_EVENTS_TABLE': Ref(video_events_table),
+            'VIDEO_EVENTS_TABLE': _video_events_table,
         }
     ),
     TracingConfig=TracingConfig(
@@ -693,20 +644,6 @@ template.add_output(Output(
     Description='ARN of the managed policy that allows consuming the media-insights Q.',
     Value=Ref(consume_insights_queue_policy),
     Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'ConsumeMediaInsightsQueuePolicy', 'Arn'])),
-))
-
-template.add_output(Output(
-    "LambdaDefaultPolicy",
-    Description='ARN of the managed policy that allows basic lambda actions.',
-    Value=Ref(lambda_managed_policy),
-    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'LambdaDefaultPolicy', 'Arn'])),
-))
-
-template.add_output(Output(
-    "VideoEventsTable",
-    Description='Name of the video-events table.',
-    Value=Ref(video_events_table),
-    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'VideoEventsTable', 'Ref'])),
 ))
 
 f = open("output/video_encoding_engine.json", "w")

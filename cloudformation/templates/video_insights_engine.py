@@ -37,8 +37,8 @@ start_insights_role = template.add_resource(Role(
         }],
     },
     ManagedPolicyArns=[
-        ImportValue(Join('-', [Ref(encoding_stack), 'LambdaDefaultPolicy-Arn'])),
-        ImportValue(Join('-', [Ref(encoding_stack), 'ConsumeMediaInsightsQueuePolicy-Arn']))
+        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
+        ImportValue(Join('-', [Ref(encoding_stack), 'ConsumeMediaInsightsQueuePolicy', 'Arn']))
     ],
 ))
 
@@ -54,7 +54,7 @@ start_insights_function = template.add_resource(Function(
     ),
     Environment=Environment(
         Variables={
-            'VIDEO_EVENTS_TABLE': ImportValue(Join('-', [Ref(encoding_stack), 'VideoEventsTable-Ref'])),
+            'VIDEO_EVENTS_TABLE': ImportValue(Join('-', [Ref(core_stack), 'VideoEventsTable', 'Ref'])),
         }
     ),
     TracingConfig=TracingConfig(

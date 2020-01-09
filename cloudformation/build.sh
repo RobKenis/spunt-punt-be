@@ -53,3 +53,8 @@ cd resources/spunt_api/rewrite_downvote/
 zip -r rewrite_downvote.zip index.js
 mv rewrite_downvote.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/get_video/
+zip -r get_video.zip index.js
+mv get_video.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY

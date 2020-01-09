@@ -1,5 +1,6 @@
-from troposphere import Template, GetAtt, ImportValue, Join, Ref, constants, Parameter, Sub
+from troposphere import Template, GetAtt, ImportValue, Join, Ref, constants, Parameter, Sub, AWS_STACK_NAME
 from troposphere.awslambda import Function, Code, Environment, TracingConfig, EventSourceMapping
+from troposphere.events import EventBus, Rule, Target
 from troposphere.iam import Role, Policy
 from troposphere.logs import LogGroup
 from troposphere.stepfunctions import StateMachine
@@ -39,56 +40,6 @@ video_metadata_event_code_key = template.add_parameter(Parameter(
 template.add_parameter_to_group(start_insights_code_key, 'Lambda Keys')
 template.add_parameter_to_group(rekognition_code_key, 'Lambda Keys')
 template.add_parameter_to_group(video_metadata_event_code_key, 'Lambda Keys')
-
-start_insights_role = template.add_resource(Role(
-    'StartInsightsLambdaRole',
-    Path="/",
-    AssumeRolePolicyDocument={
-        "Version": "2012-10-17",
-        "Statement": [{
-            "Action": ["sts:AssumeRole"],
-            "Effect": "Allow",
-            "Principal": {"Service": ["lambda.amazonaws.com"]},
-        }],
-    },
-    ManagedPolicyArns=[
-        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
-        ImportValue(Join('-', [Ref(encoding_stack), 'ConsumeMediaInsightsQueuePolicy', 'Arn']))
-    ],
-))
-
-start_insights_function = template.add_resource(Function(
-    'StartInsightsFunction',
-    Description='Consumes messages to start media insights for video.',
-    Runtime='python3.7',
-    Handler='index.handler',
-    Role=GetAtt(start_insights_role, 'Arn'),
-    Code=Code(
-        S3Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
-        S3Key=Ref(start_insights_code_key),
-    ),
-    Environment=Environment(
-        Variables={
-            'VIDEO_EVENTS_TABLE': ImportValue(Join('-', [Ref(core_stack), 'VideoEventsTable', 'Ref'])),
-        }
-    ),
-    TracingConfig=TracingConfig(
-        Mode='Active',
-    ),
-))
-
-template.add_resource(LogGroup(
-    "StartInsightsLogGroup",
-    LogGroupName=Join('/', ['/aws/lambda', Ref(start_insights_function)]),
-    RetentionInDays=7,
-))
-
-template.add_resource(EventSourceMapping(
-    'InvokeStartInsights',
-    EventSourceArn=ImportValue(Join('-', [Ref(encoding_stack), 'StartMediaInsightsQueue-Arn'])),
-    FunctionName=Ref(start_insights_function),
-    Enabled=True,
-))
 
 rekognition_role = template.add_resource(Role(
     'RekognitionRole',
@@ -194,6 +145,111 @@ with open('resources/state_machine_definitions/video_metadata.json', 'r') as def
         DefinitionString=Sub(definition.read()),
         RoleArn=GetAtt(step_function_role, 'Arn'),
     ))
+
+event_bus = template.add_resource(EventBus(
+    'InsightsEventBus',
+    Name=Ref(AWS_STACK_NAME),
+))
+
+event_bridge_role = template.add_resource(Role(
+    'EventBridgeRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["events.amazonaws.com"]},
+        }],
+    },
+    Policies=[Policy(
+        PolicyName="invoke-step-function",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ["states:StartExecution"],
+                "Effect": "Allow",
+                "Resource": [
+                    Ref(video_step_function),
+                ],
+            }],
+        })],
+))
+
+template.add_resource(Rule(
+    'StartMetadataRule',
+    Description='Routes start metadata events to the corresponding step functions',
+    EventBusName=Ref(event_bus),
+    EventPattern={"source": ["spunt.video.events"]},
+    Targets=[
+        Target(
+            Arn=Ref(video_step_function),
+            Id='VideoStepFunction',
+            RoleArn=GetAtt(event_bridge_role, 'Arn'),
+        )
+    ]
+))
+
+start_insights_role = template.add_resource(Role(
+    'StartInsightsLambdaRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[
+        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
+        ImportValue(Join('-', [Ref(encoding_stack), 'ConsumeMediaInsightsQueuePolicy', 'Arn']))
+    ],
+    Policies=[Policy(
+        PolicyName="put-events",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ["events:PutEvents"],
+                "Effect": "Allow",
+                "Resource": [GetAtt(event_bus, 'Arn')],
+            }],
+        })],
+))
+
+start_insights_function = template.add_resource(Function(
+    'StartInsightsFunction',
+    Description='Consumes messages to start media insights for video.',
+    Runtime='python3.7',
+    Handler='index.handler',
+    Role=GetAtt(start_insights_role, 'Arn'),
+    Code=Code(
+        S3Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        S3Key=Ref(start_insights_code_key),
+    ),
+    Environment=Environment(
+        Variables={
+            'VIDEO_EVENTS_TABLE': ImportValue(Join('-', [Ref(core_stack), 'VideoEventsTable', 'Ref'])),
+            'EVENT_BUS_NAME': Ref(event_bus),
+        }
+    ),
+    TracingConfig=TracingConfig(
+        Mode='Active',
+    ),
+))
+
+template.add_resource(LogGroup(
+    "StartInsightsLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(start_insights_function)]),
+    RetentionInDays=7,
+))
+
+template.add_resource(EventSourceMapping(
+    'InvokeStartInsights',
+    EventSourceArn=ImportValue(Join('-', [Ref(encoding_stack), 'StartMediaInsightsQueue-Arn'])),
+    FunctionName=Ref(start_insights_function),
+    Enabled=True,
+))
 
 f = open("output/video_insights_engine.json", "w")
 f.write(template.to_json())

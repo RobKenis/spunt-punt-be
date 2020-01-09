@@ -65,6 +65,12 @@ recommended_videos_lambda_code_key = template.add_parameter(Parameter(
     Default='lambda-code/api/recommended_videos.zip',
 ))
 
+get_video_lambda_code_key = template.add_parameter(Parameter(
+    'GetVideo',
+    Type=constants.STRING,
+    Default='lambda-code/api/get_video.zip',
+))
+
 rewrite_downvote_lambda_code_key = template.add_parameter(Parameter(
     'RewriteDownvote',
     Type=constants.STRING,
@@ -75,6 +81,7 @@ template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(trending_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(hot_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(recommended_videos_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(get_video_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(rewrite_downvote_lambda_code_key, 'Lambda Keys')
 
 cloudfront_certificate = template.add_resource(Certificate(
@@ -353,6 +360,19 @@ recommended_videos_function = template.add_resource(Function(
     ),
 ))
 
+get_video_function = template.add_resource(Function(
+    'GetVideoFunction',
+    Description='Returns single video.',
+    Runtime='nodejs10.x',
+    Handler='index.handler',
+    Role=GetAtt(readonly_function_role, 'Arn'),
+    AutoPublishAlias='live',
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(get_video_lambda_code_key),
+    ),
+))
+
 rewrite_downvote_function = template.add_resource(Function(
     'RewriteDownvoteFunction',
     Description='Rewrite /v1/downvote to /v1/upvote.',
@@ -451,6 +471,23 @@ api_cdn = template.add_resource(Distribution(
             LambdaFunctionAssociations=[LambdaFunctionAssociation(
                 EventType='origin-request',
                 LambdaFunctionARN=VersionRef(recommended_videos_function),
+            )],
+        ), CacheBehavior(
+            TargetOriginId="apigateway",
+            PathPattern='/video/*',
+            ViewerProtocolPolicy='redirect-to-https',
+            AllowedMethods=['GET', 'HEAD', 'OPTIONS'],
+            CachedMethods=['GET', 'HEAD', 'OPTIONS'],
+            ForwardedValues=ForwardedValues(
+                QueryString=False,
+            ),
+            MinTTL=120,  # 2 minutes
+            DefaultTTL=300,  # 5 minutes
+            MaxTTL=300,  # 5 minutes
+            Compress=True,
+            LambdaFunctionAssociations=[LambdaFunctionAssociation(
+                EventType='origin-request',
+                LambdaFunctionARN=VersionRef(get_video_function),
             )],
         ), CacheBehavior(
             TargetOriginId="apigateway",

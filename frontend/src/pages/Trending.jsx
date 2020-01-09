@@ -1,15 +1,15 @@
 import React, { Component } from "react";
-import { getHotVideos } from "../../api/VideoApiClient";
-import { VideoGrid } from "../../components/video-grid/VideoGrid";
+import { getTrendingVideos } from "../api/VideoApiClient";
+import { VideoGrid } from "../components/video-grid/VideoGrid";
 
-export class Hot extends Component {
+export class Trending extends Component {
   state = {
     videos: [],
   };
 
   constructor(props, context) {
     super(props, context);
-    getHotVideos().then((response) => {
+    getTrendingVideos().then((response) => {
       this.setState({
         videos: response.data.videos,
       });
@@ -19,7 +19,7 @@ export class Hot extends Component {
   render() {
     return (
       <section className="container section">
-        <h1 className="title">Hot</h1>
+        <h1 className="title">Trending</h1>
         <VideoGrid videos={this.state.videos} />
       </section>
     );

@@ -19,3 +19,7 @@ export const getTrendingVideos = () => {
 export const getRecommendedVideos = () => {
   return api.get("/videos/recommendations");
 };
+
+export const getVideo = (id) => {
+  return api.get("/video/" + id);
+};

@@ -7,8 +7,12 @@
     font-size: 1.2em;
   }
 
+  .navbar-brand {
+    margin-right: $spacing-xl;
+  }
+
   .navbar-brand-icon {
-    font-size: 1.8em;
+    font-size: 2em;
 
     span {
       color: $primary;

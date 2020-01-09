@@ -1,6 +1,6 @@
 import React, { Component } from "react";
-import { getAllVideos } from "../../api/VideoApiClient";
-import { VideoGrid } from "../../components/video-grid/VideoGrid";
+import { getAllVideos } from "../api/VideoApiClient";
+import { VideoGrid } from "../components/video-grid/VideoGrid";
 
 export class Home extends Component {
   state = {

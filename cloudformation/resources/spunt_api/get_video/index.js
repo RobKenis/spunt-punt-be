@@ -1,26 +1,23 @@
-const body = {
-  id: "3e72bdc6-28e3-11ea-abb5-5a2040ddf892",
-  title: "Very pretty title",
-  playbackUrl: "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd",
-  thumbnailUrl: "https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.jpg"
-};
+const AWS = require('aws-sdk');
 
-exports.handler = (event, context, callback) => {
-  const response = {
-    status: "200",
-    statusDescription: "OK",
-    body: JSON.stringify(body),
-    headers: {
-      "access-control-allow-origin": [
-        { key: "Access-Control-Allow-Origin", value: "*" }
-      ],
-      "access-control-allow-methods": [
-        { key: "Access-Control-Allow-Methods", value: "GET, HEAD, OPTIONS" }
-      ],
-      "access-control-max-age": [
-        { key: "Access-Control-Max-Age", value: "86400" }
-      ]
-    }
-  };
-  callback(null, response);
+AWS.config.update({region: 'us-east-1'});
+const documentClient = new AWS.DynamoDB.DocumentClient();
+
+exports.handler = async (event, context, callback) => {
+    const request = event.Records[0].cf.request;
+    const videoId = /[^/]*$/.exec(request.uri)[0];
+    const videoTable = request.origin.custom.customHeaders["x-video-table"][0].value;
+    const {Item: item} = await documentClient.get({TableName: videoTable, Key: {videoId: videoId}}).promise();
+    const {lastModified, ...video} = item;
+    const response = {
+        status: "200",
+        statusDescription: "OK",
+        body: JSON.stringify(video),
+        headers: {
+            "access-control-allow-origin": [{key: "Access-Control-Allow-Origin", value: "*"}],
+            "access-control-allow-methods": [{key: "Access-Control-Allow-Methods", value: "GET, HEAD, OPTIONS"}],
+            "access-control-max-age": [{key: "Access-Control-Max-Age", value: "86400"}]
+        }
+    };
+    callback(null, response);
 };

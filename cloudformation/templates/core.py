@@ -5,6 +5,7 @@ from troposphere.iam import ManagedPolicy, Role
 from troposphere.logs import LogGroup
 from troposphere.s3 import Bucket
 from troposphere.serverless import Function
+from troposphere.sqs import Queue
 
 template = Template(Description='Core resources for spunt.be')
 template.set_transform('AWS::Serverless-2016-10-31')
@@ -62,6 +63,14 @@ lambda_managed_policy = template.add_resource(ManagedPolicy(
     }
 ))
 
+events_to_api_queue = template.add_resource(Queue(
+    'EventsToApiQueue',
+))
+
+event_to_dashboard_queue = template.add_resource(Queue(
+    'EventsToDashboardQueue',
+))
+
 event_router_role = template.add_resource(Role(
     'EventRouterRole',
     Path="/",
@@ -83,6 +92,10 @@ event_router_role = template.add_resource(Role(
                            "dynamodb:GetShardIterator", "dynamodb:ListStreams"],
                 "Resource": [Join('', [GetAtt(video_events_table, 'Arn'), '/stream/*'])],
                 "Effect": "Allow",
+            }, {
+                "Action": ["sqs:SendMessage"],
+                "Resource": [GetAtt(events_to_api_queue, 'Arn'), GetAtt(event_to_dashboard_queue, 'Arn')],
+                "Effect": "Allow",
             }],
         })],
 ))
@@ -97,8 +110,9 @@ with open('resources/spunt_core/event_router/index.py', 'r') as lambda_code:
         Role=GetAtt(event_router_role, 'Arn'),
         Environment=Environment(
             Variables={
-                'API_EVENTS_QUEUE': '_TODO_'
-            }
+                'API_EVENTS_QUEUE_URL': Ref(events_to_api_queue),
+                'DASHBOARD_EVENTS_QUEUE_URL': Ref(event_to_dashboard_queue),
+            },
         ),
         Events={
             'VideoEventsStream': {

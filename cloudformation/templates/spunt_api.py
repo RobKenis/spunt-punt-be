@@ -7,10 +7,11 @@ from troposphere.awslambda import Code, Environment, TracingConfig, EventSourceM
 from troposphere.certificatemanager import Certificate, DomainValidationOption
 from troposphere.cloudfront import Distribution, DistributionConfig, DefaultCacheBehavior, ViewerCertificate, \
     ForwardedValues, Origin, CustomOriginConfig, OriginCustomHeader, CacheBehavior, LambdaFunctionAssociation
+from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role
 from troposphere.logs import LogGroup
 from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
-from troposphere.serverless import Function, S3Location
+from troposphere.serverless import Function, S3Location, SimpleTable, PrimaryKey
 
 
 class VersionRef(AWSHelperFn):
@@ -562,6 +563,19 @@ template.add_resource(RecordSetGroup(
     Comment=Join('', ['Record for CloudFront in ', Ref(AWS_STACK_NAME)]),
 ))
 
+video_table = template.add_resource(Table(
+    'VideoTable',
+    BillingMode='PAY_PER_REQUEST',
+    AttributeDefinitions=[AttributeDefinition(
+        AttributeName='videoId',
+        AttributeType='S',
+    )],
+    KeySchema=[KeySchema(
+        AttributeName='videoId',
+        KeyType='HASH',
+    )],
+))
+
 consume_events_role = template.add_resource(Role(
     'ConsumeEventsRole',
     Path="/",
@@ -577,6 +591,16 @@ consume_events_role = template.add_resource(Role(
         ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
         ImportValue(Join('-', [Ref(core_stack), 'EventsToApiQueuePolicy', 'Arn']))
     ],
+    Policies=[iam.Policy(
+        PolicyName="api-consume-events",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ["dynamodb:UpdateItem"],
+                "Resource": [GetAtt(video_table, 'Arn')],
+                "Effect": "Allow",
+            }],
+        })],
 ))
 
 consume_events_function = template.add_resource(awslambda.Function(
@@ -591,7 +615,7 @@ consume_events_function = template.add_resource(awslambda.Function(
     ),
     Environment=Environment(
         Variables={
-            'VIDEO_TABLE': 'TODO',
+            'VIDEO_TABLE': Ref(video_table),
         }
     ),
     TracingConfig=TracingConfig(

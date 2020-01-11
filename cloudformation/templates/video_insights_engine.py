@@ -3,6 +3,8 @@ from troposphere.awslambda import Function, Code, Environment, TracingConfig, Ev
 from troposphere.events import EventBus, Rule, Target
 from troposphere.iam import Role, Policy
 from troposphere.logs import LogGroup
+from troposphere.sns import Topic, Subscription
+from troposphere.sqs import Queue, QueuePolicy
 from troposphere.stepfunctions import StateMachine
 
 template = Template(Description='Video insights engine for spunt.be')
@@ -41,6 +43,60 @@ template.add_parameter_to_group(start_insights_code_key, 'Lambda Keys')
 template.add_parameter_to_group(rekognition_code_key, 'Lambda Keys')
 template.add_parameter_to_group(video_metadata_event_code_key, 'Lambda Keys')
 
+rekognition_updates_queue = template.add_resource(Queue(
+    'RekognitionUpdatesQueue',
+))
+
+rekognition_updates_topic = template.add_resource(Topic(
+    'RekognitionUpdatesTopic',
+    Subscription=[Subscription(
+        Endpoint=GetAtt(rekognition_updates_queue, 'Arn'),
+        Protocol='sqs',
+    )],
+))
+
+template.add_resource(QueuePolicy(
+    "RekognitionUpdatesQueuePolicy",
+    Queues=[Ref(rekognition_updates_queue)],
+    PolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["sqs:SendMessage"],
+            "Resource": GetAtt(rekognition_updates_queue, 'Arn'),
+            "Principal": {"Service": "sns.amazonaws.com"},
+            "Condition": {"ArnEquals": {"aws:SourceArn": Ref(rekognition_updates_topic)}},
+        }],
+    },
+))
+
+rekognition_publish_role = template.add_resource(Role(
+    'RekognitionPublishRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["rekognition.amazonaws.com"]},
+        }],
+    },
+    Policies=[Policy(
+        PolicyName="put-rekognition-status-on-topic",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "sns:Publish"
+                    ],
+                    "Resource": Ref(rekognition_updates_topic),
+                },
+            ]
+        })],
+))
+
 rekognition_role = template.add_resource(Role(
     'RekognitionRole',
     Path="/",
@@ -55,6 +111,32 @@ rekognition_role = template.add_resource(Role(
     ManagedPolicyArns=[
         ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
     ],
+    Policies=[Policy(
+        PolicyName="rekognition",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": ["rekognition:StartLabelDetection"],
+                    "Resource": '*',
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": ["iam:PassRole"],
+                    "Resource": GetAtt(rekognition_publish_role, 'Arn'),
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": ["s3:Get*"],
+                    "Resource": Join('', [
+                        'arn:aws:s3:::',
+                        ImportValue(Join('-', [Ref(encoding_stack), 'UploadBucket', 'Ref'])),
+                        '/*',
+                    ]),
+                },
+            ]
+        })],
 ))
 
 rekognition_function = template.add_resource(Function(
@@ -70,11 +152,20 @@ rekognition_function = template.add_resource(Function(
     Environment=Environment(
         Variables={
             'VIDEO_EVENTS_TABLE': ImportValue(Join('-', [Ref(core_stack), 'VideoEventsTable', 'Ref'])),
+            'REKOGNITION_UPDATES_TOPIC': Ref(rekognition_updates_topic),
+            'REKOGNITION_ROLE_ARN': GetAtt(rekognition_publish_role, 'Arn'),
+            'INPUT_BUCKET': ImportValue(Join('-', [Ref(encoding_stack), 'UploadBucket', 'Ref'])),
         }
     ),
     TracingConfig=TracingConfig(
         Mode='Active',
     ),
+))
+
+template.add_resource(LogGroup(
+    "RekognitionFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(rekognition_function)]),
+    RetentionInDays=7,
 ))
 
 video_metadata_event_role = template.add_resource(Role(

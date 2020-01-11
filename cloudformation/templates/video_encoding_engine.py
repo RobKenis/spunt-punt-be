@@ -633,6 +633,13 @@ template.add_output(Output(
 ))
 
 template.add_output(Output(
+    "UploadBucket",
+    Description='Name of the bucket holding the uploaded content.',
+    Value=Ref(upload_bucket),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'UploadBucket', 'Ref'])),
+))
+
+template.add_output(Output(
     "StartMediaInsightsQueue",
     Description='ARN of the media-insights Q.',
     Value=GetAtt(start_media_insights_queue, 'Arn'),

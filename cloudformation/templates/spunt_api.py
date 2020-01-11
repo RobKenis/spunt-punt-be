@@ -103,15 +103,18 @@ video_table = template.add_resource(Table(
     ), AttributeDefinition(
         AttributeName='lastModified',
         AttributeType='S',
+    ), AttributeDefinition(
+        AttributeName='videoState',
+        AttributeType='S',
     )],
     KeySchema=[KeySchema(
         AttributeName='videoId',
         KeyType='HASH',
     )],
     GlobalSecondaryIndexes=[GlobalSecondaryIndex(
-        IndexName='lastModified',
+        IndexName='lastModifiedInState',
         KeySchema=[KeySchema(
-            AttributeName='videoId',
+            AttributeName='videoState',
             KeyType='HASH',
         ), KeySchema(
             AttributeName='lastModified',
@@ -404,8 +407,8 @@ readonly_function_role = template.add_resource(Role(
                 "Resource": "arn:aws:logs:*:*:*",
                 "Effect": "Allow",
             }, {
-                "Action": ['dynamodb:GetItem'],
-                "Resource": GetAtt(video_table, 'Arn'),
+                "Action": ['dynamodb:Query', 'dynamodb:GetItem'],
+                "Resource": [GetAtt(video_table, 'Arn'), Join('', [GetAtt(video_table, 'Arn'), '/*'])],
                 "Effect": "Allow",
             }],
         })],

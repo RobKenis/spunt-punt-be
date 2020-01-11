@@ -28,11 +28,14 @@ def _new_video_uploaded(event):
             Key={
                 'videoId': {'S': event['videoId']},
             },
-            UpdateExpression="SET lastModified = :lastModified",
+            UpdateExpression="SET lastModified = :lastModified, videoState = :state",
             ConditionExpression="attribute_not_exists(videoId)",
             ExpressionAttributeValues={
                 ':lastModified': {
                     'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat(),
+                },
+                ':state': {
+                    'S': 'PROCESSING',
                 },
             },
         )
@@ -48,7 +51,8 @@ def _encoding_completed(event):
             Key={
                 'videoId': {'S': event['videoId']},
             },
-            UpdateExpression="SET lastModified = :modified, playbackUrl = :playback, thumbnailUrl = :thumbnail",
+            UpdateExpression="SET lastModified = :modified, playbackUrl = :playback, "
+                             "thumbnailUrl = :thumbnail, videoState = :state",
             ConditionExpression="attribute_exists(videoId)",
             ExpressionAttributeValues={
                 ':modified': {
@@ -59,6 +63,9 @@ def _encoding_completed(event):
                 },
                 ':thumbnail': {
                     'S': THUMBNAIL_URL.format(path=json.loads(event['metadata'])['thumbnailPath']),
+                },
+                ':state': {
+                    'S': 'AVAILABLE',
                 },
             },
         )

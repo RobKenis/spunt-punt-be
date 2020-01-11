@@ -10,6 +10,7 @@ client = boto3.client('dynamodb')
 VIDEO_TABLE = os.environ.get('VIDEO_TABLE')
 
 VIDEO_URL = "https://videos.spunt.be/{path}"
+THUMBNAIL_URL = "https://videos.spunt.be/{path}"  # Put this on a different CDN.
 
 
 def _error_handler(event):
@@ -47,14 +48,17 @@ def _encoding_completed(event):
             Key={
                 'videoId': {'S': event['videoId']},
             },
-            UpdateExpression="SET lastModified = :lastModified, playbackUrl = :playbackUrl",
+            UpdateExpression="SET lastModified = :modified, playbackUrl = :playback, thumbnailUrl = :thumbnail",
             ConditionExpression="attribute_exists(videoId)",
             ExpressionAttributeValues={
-                ':lastModified': {
+                ':modified': {
                     'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat(),
                 },
-                ':playbackUrl': {
+                ':playback': {
                     'S': VIDEO_URL.format(path=json.loads(event['metadata'])['path']),
+                },
+                ':thumbnail': {
+                    'S': THUMBNAIL_URL.format(path=json.loads(event['metadata'])['thumbnailPath']),
                 },
             },
         )

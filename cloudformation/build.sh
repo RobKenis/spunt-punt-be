@@ -18,6 +18,21 @@ zip -r update_encoding_state.zip index.py
 mv update_encoding_state.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
 
+cd resources/video_insights_engine/rekognition/
+zip -r rekognition.zip index.py
+mv rekognition.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/video_insights_engine/video_metadata_event/
+zip -r video_metadata_event.zip index.py
+mv video_metadata_event.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/video_insights_engine/rekognition_results/
+zip -r rekognition_results.zip index.py
+mv rekognition_results.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
 cd resources/video_insights_engine/start_insights/
 zip -r start_insights.zip index.py
 mv start_insights.zip "$WORKING_DIRECTORY/output/"

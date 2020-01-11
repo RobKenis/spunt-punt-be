@@ -1,0 +1,21 @@
+{
+  "Comment": "Extract video metadata using Transcribe and Comprehend.",
+  "StartAt": "ExtractMetadataState",
+  "States": {
+    "ExtractMetadataState": {
+      "Type": "Task",
+      "Resource": "${ExtractMetadataState}",
+      "Next": "ComprehendState"
+    },
+    "ComprehendState": {
+      "Type" : "Task",
+      "Resource": "${ComprehendState}",
+      "Next": "EventState"
+    },
+    "EventState": {
+      "Type" : "Task",
+      "Resource": "${EventState}",
+      "End": true
+    }
+  }
+}

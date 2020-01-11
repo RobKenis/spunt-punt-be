@@ -73,3 +73,8 @@ cd resources/spunt_api/get_video/
 zip -r get_video.zip index.js
 mv get_video.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/consume_events/
+zip -r consume_events.zip index.py
+mv consume_events.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY

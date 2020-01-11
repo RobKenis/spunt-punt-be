@@ -1,9 +1,14 @@
-from troposphere import Template, Output, Ref, Export, Join, AWS_STACK_NAME, GetAtt
-from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
-from troposphere.iam import ManagedPolicy
+from troposphere import Template, Output, Ref, Export, Join, AWS_STACK_NAME, GetAtt, iam
+from troposphere.awslambda import Environment
+from troposphere.dynamodb import Table, AttributeDefinition, KeySchema, StreamSpecification
+from troposphere.iam import ManagedPolicy, Role
+from troposphere.logs import LogGroup
 from troposphere.s3 import Bucket
+from troposphere.serverless import Function
+from troposphere.sqs import Queue
 
 template = Template(Description='Core resources for spunt.be')
+template.set_transform('AWS::Serverless-2016-10-31')
 
 lambda_code_bucket = template.add_resource(Bucket(
     'LambdaCodeBucket',
@@ -27,6 +32,9 @@ video_events_table = template.add_resource(Table(
         AttributeName='timestamp',
         KeyType='RANGE',
     )],
+    StreamSpecification=StreamSpecification(
+        StreamViewType='NEW_IMAGE',
+    ),
 ))
 
 # Managed policies
@@ -55,6 +63,88 @@ lambda_managed_policy = template.add_resource(ManagedPolicy(
     }
 ))
 
+events_to_api_queue = template.add_resource(Queue(
+    'EventsToApiQueue',
+))
+
+events_to_api_queue_policy = template.add_resource(ManagedPolicy(
+    'EventsToApiQueuePolicy',
+    Description='Allows consuming messages from the api-events queue.',
+    PolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sqs:DeleteMessage", "sqs:ReceiveMessage", "sqs:GetQueueAttributes"],
+            "Resource": GetAtt(events_to_api_queue, 'Arn'),
+            "Effect": "Allow",
+        }],
+    }
+))
+
+event_to_dashboard_queue = template.add_resource(Queue(
+    'EventsToDashboardQueue',
+))
+
+event_router_role = template.add_resource(Role(
+    'EventRouterRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[Ref(lambda_managed_policy)],
+    Policies=[iam.Policy(
+        PolicyName="video-event-router",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ["dynamodb:DescribeStream", "dynamodb:GetRecords",
+                           "dynamodb:GetShardIterator", "dynamodb:ListStreams"],
+                "Resource": [Join('', [GetAtt(video_events_table, 'Arn'), '/stream/*'])],
+                "Effect": "Allow",
+            }, {
+                "Action": ["sqs:SendMessage"],
+                "Resource": [GetAtt(events_to_api_queue, 'Arn'), GetAtt(event_to_dashboard_queue, 'Arn')],
+                "Effect": "Allow",
+            }],
+        })],
+))
+
+with open('resources/spunt_core/event_router/index.py', 'r') as lambda_code:
+    event_router_function = template.add_resource(Function(
+        'EventRouterFunction',
+        Handler='index.handler',
+        Runtime='python3.7',
+        InlineCode=lambda_code.read(),
+        Description='Consumes events dynamoDB stream and routes events to corresponding queues.',
+        Role=GetAtt(event_router_role, 'Arn'),
+        Environment=Environment(
+            Variables={
+                'API_EVENTS_QUEUE_URL': Ref(events_to_api_queue),
+                'DASHBOARD_EVENTS_QUEUE_URL': Ref(event_to_dashboard_queue),
+            },
+        ),
+        Events={
+            'VideoEventsStream': {
+                'Type': 'DynamoDB',
+                'Properties': {
+                    'Enabled': True,
+                    'StartingPosition': 'TRIM_HORIZON',
+                    'Stream': GetAtt(video_events_table, 'StreamArn'),
+                }
+            }
+        },
+    ))
+
+template.add_resource(LogGroup(
+    "EventRouterFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(event_router_function)]),
+    RetentionInDays=7,
+))
+
 template.add_output(Output(
     "LambdaCodeBucket",
     Description='Name of the bucket where all the lambda code is located.',
@@ -74,6 +164,20 @@ template.add_output(Output(
     Description='Name of the video-events table.',
     Value=Ref(video_events_table),
     Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'VideoEventsTable', 'Ref'])),
+))
+
+template.add_output(Output(
+    "EventsToApiQueue",
+    Description='ARN of the api-events Q.',
+    Value=GetAtt(events_to_api_queue, 'Arn'),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'EventsToApiQueue', 'Arn'])),
+))
+
+template.add_output(Output(
+    "EventsToApiQueuePolicy",
+    Description='ARN of the managed policy that allows consuming the api-events Q.',
+    Value=Ref(events_to_api_queue_policy),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'EventsToApiQueuePolicy', 'Arn'])),
 ))
 
 f = open("output/core.json", "w")

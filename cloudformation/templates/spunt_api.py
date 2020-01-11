@@ -1,14 +1,17 @@
 from troposphere import Template, AWS_STACK_NAME, Ref, ImportValue, GetAtt, Join, Parameter, constants, AWS_REGION, iam, \
-    AWSHelperFn
+    AWSHelperFn, awslambda
 from troposphere.apigateway import RestApi, EndpointConfiguration, Resource, Method, Integration, MethodResponse, Model, \
     IntegrationResponse, Deployment, Stage, ApiKey, StageKey, UsagePlan, QuotaSettings, ApiStage, UsagePlanKey, \
     ThrottleSettings
+from troposphere.awslambda import Code, Environment, TracingConfig, EventSourceMapping
 from troposphere.certificatemanager import Certificate, DomainValidationOption
 from troposphere.cloudfront import Distribution, DistributionConfig, DefaultCacheBehavior, ViewerCertificate, \
     ForwardedValues, Origin, CustomOriginConfig, OriginCustomHeader, CacheBehavior, LambdaFunctionAssociation
+from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role
+from troposphere.logs import LogGroup
 from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
-from troposphere.serverless import Function, S3Location
+from troposphere.serverless import Function, S3Location, SimpleTable, PrimaryKey
 
 
 class VersionRef(AWSHelperFn):
@@ -77,12 +80,19 @@ rewrite_downvote_lambda_code_key = template.add_parameter(Parameter(
     Default='lambda-code/api/rewrite_downvote.zip',
 ))
 
+consume_events_code_key = template.add_parameter(Parameter(
+    'ConsumeEvents',
+    Type=constants.STRING,
+    Default='lambda-code/api/consume_events.zip',
+))
+
 template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(trending_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(hot_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(recommended_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(get_video_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(rewrite_downvote_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(consume_events_code_key, 'Lambda Keys')
 
 cloudfront_certificate = template.add_resource(Certificate(
     "CloudFrontCertificate",
@@ -551,6 +561,79 @@ template.add_resource(RecordSetGroup(
         ),
     )],
     Comment=Join('', ['Record for CloudFront in ', Ref(AWS_STACK_NAME)]),
+))
+
+video_table = template.add_resource(Table(
+    'VideoTable',
+    BillingMode='PAY_PER_REQUEST',
+    AttributeDefinitions=[AttributeDefinition(
+        AttributeName='videoId',
+        AttributeType='S',
+    )],
+    KeySchema=[KeySchema(
+        AttributeName='videoId',
+        KeyType='HASH',
+    )],
+))
+
+consume_events_role = template.add_resource(Role(
+    'ConsumeEventsRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[
+        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
+        ImportValue(Join('-', [Ref(core_stack), 'EventsToApiQueuePolicy', 'Arn']))
+    ],
+    Policies=[iam.Policy(
+        PolicyName="api-consume-events",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ["dynamodb:UpdateItem"],
+                "Resource": [GetAtt(video_table, 'Arn')],
+                "Effect": "Allow",
+            }],
+        })],
+))
+
+consume_events_function = template.add_resource(awslambda.Function(
+    'ConsumeEventsFunction',
+    Description='Consumes events to build the video model.',
+    Runtime='python3.7',
+    Handler='index.handler',
+    Role=GetAtt(consume_events_role, 'Arn'),
+    Code=Code(
+        S3Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        S3Key=Ref(consume_events_code_key),
+    ),
+    Environment=Environment(
+        Variables={
+            'VIDEO_TABLE': Ref(video_table),
+        }
+    ),
+    TracingConfig=TracingConfig(
+        Mode='Active',
+    ),
+))
+
+template.add_resource(LogGroup(
+    "ConsumeEventsLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(consume_events_function)]),
+    RetentionInDays=7,
+))
+
+template.add_resource(EventSourceMapping(
+    'InvokeConsumeEvents',
+    EventSourceArn=ImportValue(Join('-', [Ref(core_stack), 'EventsToApiQueue-Arn'])),
+    FunctionName=Ref(consume_events_function),
+    Enabled=True,
 ))
 
 f = open("output/spunt_api.json", "w")

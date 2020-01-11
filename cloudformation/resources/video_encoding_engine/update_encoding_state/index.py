@@ -30,7 +30,10 @@ def _encoding_failed(video_id):
 
 
 def _encoding_completed(video_id):
-    _store_event(video_id, 'ENCODING_COMPLETED', {'path': "{videoId}/{videoId}.mpd".format(videoId=video_id)})
+    _store_event(video_id, 'ENCODING_COMPLETED', {
+        'path': "{videoId}/{videoId}.mpd".format(videoId=video_id),
+        'thumbnailPath': "{videoId}/thumbnail-00001.png".format(videoId=video_id),
+    })
 
 
 def handler(event, context):

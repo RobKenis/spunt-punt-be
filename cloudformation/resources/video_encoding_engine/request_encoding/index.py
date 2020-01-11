@@ -48,6 +48,7 @@ def _request_encode(video_id, path):
             'Key': 'mpd-video',
             'PresetId': '1351620000001-500040',
             'SegmentDuration': '4.0',
+            'ThumbnailPattern': 'thumbnail-{count}',
         }, {
             'Key': 'mpd-audio',
             'PresetId': '1351620000001-500060',

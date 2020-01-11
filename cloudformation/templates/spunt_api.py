@@ -11,7 +11,7 @@ from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role
 from troposphere.logs import LogGroup
 from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
-from troposphere.serverless import Function, S3Location, SimpleTable, PrimaryKey
+from troposphere.serverless import Function, S3Location
 
 
 class VersionRef(AWSHelperFn):
@@ -311,7 +311,7 @@ readonly_function_role = template.add_resource(Role(
         PolicyDocument={
             "Version": "2012-10-17",
             "Statement": [{
-                "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+                "Action": ['logs:CreateLogGroup', "logs:CreateLogStream", "logs:PutLogEvents"],
                 "Resource": "arn:aws:logs:*:*:*",
                 "Effect": "Allow",
             }],

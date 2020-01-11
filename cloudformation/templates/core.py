@@ -67,6 +67,19 @@ events_to_api_queue = template.add_resource(Queue(
     'EventsToApiQueue',
 ))
 
+events_to_api_queue_policy = template.add_resource(ManagedPolicy(
+    'EventsToApiQueuePolicy',
+    Description='Allows consuming messages from the api-events queue.',
+    PolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sqs:DeleteMessage", "sqs:ReceiveMessage", "sqs:GetQueueAttributes"],
+            "Resource": GetAtt(events_to_api_queue, 'Arn'),
+            "Effect": "Allow",
+        }],
+    }
+))
+
 event_to_dashboard_queue = template.add_resource(Queue(
     'EventsToDashboardQueue',
 ))
@@ -151,6 +164,20 @@ template.add_output(Output(
     Description='Name of the video-events table.',
     Value=Ref(video_events_table),
     Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'VideoEventsTable', 'Ref'])),
+))
+
+template.add_output(Output(
+    "EventsToApiQueue",
+    Description='ARN of the api-events Q.',
+    Value=GetAtt(events_to_api_queue, 'Arn'),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'EventsToApiQueue', 'Arn'])),
+))
+
+template.add_output(Output(
+    "EventsToApiQueuePolicy",
+    Description='ARN of the managed policy that allows consuming the api-events Q.',
+    Value=Ref(events_to_api_queue_policy),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'EventsToApiQueuePolicy', 'Arn'])),
 ))
 
 f = open("output/core.json", "w")

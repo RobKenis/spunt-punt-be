@@ -39,9 +39,16 @@ video_metadata_event_code_key = template.add_parameter(Parameter(
     Default='lambda-code/video_engine/video_metadata_event.zip',
 ))
 
+rekognition_results_code_key = template.add_parameter(Parameter(
+    'RekognitionResults',
+    Type=constants.STRING,
+    Default='lambda-code/video_engine/rekognition_results.zip',
+))
+
 template.add_parameter_to_group(start_insights_code_key, 'Lambda Keys')
 template.add_parameter_to_group(rekognition_code_key, 'Lambda Keys')
 template.add_parameter_to_group(video_metadata_event_code_key, 'Lambda Keys')
+template.add_parameter_to_group(rekognition_results_code_key, 'Lambda Keys')
 
 rekognition_updates_queue = template.add_resource(Queue(
     'RekognitionUpdatesQueue',
@@ -204,6 +211,66 @@ video_metadata_event_function = template.add_resource(Function(
     ),
 ))
 
+template.add_resource(LogGroup(
+    "VideoMetadataEventFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(video_metadata_event_function)]),
+    RetentionInDays=7,
+))
+
+rekognition_results_role = template.add_resource(Role(
+    'RekognitionResultsRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[
+        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
+    ],
+    Policies=[Policy(
+        PolicyName="rekognition",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": ["rekognition:GetLabelDetection"],
+                    "Resource": '*',
+                },
+            ]
+        })],
+))
+
+rekognition_results_function = template.add_resource(Function(
+    'RekognitionResultsFunction',
+    Description='Handles Rekognition result and creates an event.',
+    Runtime='python3.7',
+    Handler='index.handler',
+    Role=GetAtt(rekognition_results_role, 'Arn'),
+    Code=Code(
+        S3Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        S3Key=Ref(rekognition_results_code_key),
+    ),
+    Environment=Environment(
+        Variables={
+            'VIDEO_EVENTS_TABLE': ImportValue(Join('-', [Ref(core_stack), 'VideoEventsTable', 'Ref'])),
+        }
+    ),
+    TracingConfig=TracingConfig(
+        Mode='Active',
+    ),
+))
+
+template.add_resource(LogGroup(
+    "RekognitionResultsFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(rekognition_results_function)]),
+    RetentionInDays=7,
+))
+
 step_function_role = template.add_resource(Role(
     'StepFunctionRole',
     Path="/",
@@ -225,6 +292,7 @@ step_function_role = template.add_resource(Role(
                 "Resource": [
                     GetAtt(rekognition_function, 'Arn'),
                     GetAtt(video_metadata_event_function, 'Arn'),
+                    GetAtt(rekognition_results_function, 'Arn'),
                 ],
             }],
         })],

@@ -30,5 +30,6 @@ def handler(event, context):
     )
     return {
         'videoId': video_id,
+        'jobId': response['JobId'],
         'status': 'REKOGNITION_STARTED',
     }

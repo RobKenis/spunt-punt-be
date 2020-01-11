@@ -16,6 +16,10 @@ def handler(event, context):
             'videoId': {'S': event['videoId']},
             'type': {'S': event['status']},
             'timestamp': {'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()},
-            'metadata': {'S': json.dumps({})}
+            'metadata': {'S': json.dumps({'jobId': event['jobId']})}
         }
     )
+    return {
+        'videoId': event['videoId'],
+        'jobId': event['jobId'],
+    }

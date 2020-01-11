@@ -10,6 +10,16 @@
     "CreateEventState": {
       "Type" : "Task",
       "Resource": "${VideoMetadataEventFunction.Arn}",
+      "Next": "WaitForRekognition"
+    },
+    "WaitForRekognition": {
+      "Type" : "Wait",
+      "Seconds": 600,
+      "Next": "HandleRekognitionResults"
+    },
+    "HandleRekognitionResults": {
+      "Type" : "Task",
+      "Resource": "${RekognitionResultsFunction.Arn}",
       "End": true
     }
   }

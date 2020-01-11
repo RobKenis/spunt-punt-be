@@ -1,18 +1,35 @@
 import collections
+import datetime
 import json
+import os
 
 import boto3
 
 rekognition = boto3.client('rekognition')
+dynamo = boto3.client('dynamodb')
+
+VIDEO_EVENTS_TABLE = os.environ.get('VIDEO_EVENTS_TABLE')
 
 
 def handler(event, context):
     response = rekognition.get_label_detection(
-        JobId='f714a7a0774c3a94fbe1a901dc6b8b4c5c03f7a85ffbfede925320d638175d73',
+        JobId=event['jobId'],
         SortBy='NAME'
     )
-    count = collections.Counter([label['Label']['Name'] for label in response['Labels']])
-    print(count)
+    counter = collections.Counter([label['Label']['Name'] for label in response['Labels']])
+    labels = list(map(lambda count: {'name': count[0], 'amount': count[1]}, counter.most_common()))
+    dynamo.put_item(
+        TableName=VIDEO_EVENTS_TABLE,
+        Item={
+            'videoId': {'S': event['videoId']},
+            'type': {'S': 'VIDEO_LABELS_COLLECTED'},
+            'timestamp': {'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()},
+            'metadata': {'S': json.dumps({'labels': labels})}
+        }
+    )
 
 
-handler(None, None)
+handler({
+    "videoId": "a3e41b6a-344a-11ea-8a36-4ee1b5287af4",
+    "jobId": "07b078eaa4945d9297bac6f13e9f221e97383fe695bbbe08a9ba6e7771fd5678"
+}, None)

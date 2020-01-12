@@ -8,7 +8,9 @@
   }
 
   .navbar-brand {
-    margin-right: $spacing-xl;
+    @media screen and (min-width: $desktop) {
+      margin-right: $spacing-xl;
+    }
   }
 
   .navbar-brand-icon {

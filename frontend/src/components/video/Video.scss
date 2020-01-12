@@ -1,2 +1,22 @@
 @import "src/variables";
 
+.video__player {
+  margin-bottom: $spacing-lg;
+}
+
+.video__labels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  list-style: none;
+}
+
+.video__label {
+  background-color: $primary;
+  border-radius: 3px;
+  color: black;
+  display: inline;
+  margin-bottom: $spacing-sm;
+  margin-right: $spacing-sm;
+  padding: $spacing-xs $spacing-md;
+}

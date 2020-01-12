@@ -7,7 +7,8 @@ export class Detail extends Component {
     video: {},
   };
 
-  componentDidMount() {
+  constructor(props, context) {
+    super(props, context);
     getVideo(this.props.match.params.id).then((response) => {
       this.setState({
         video: response.data,
@@ -19,7 +20,7 @@ export class Detail extends Component {
     return (
       <section className="container section">
         <h1 className="title">{this.state.video.title}</h1>
-        <Video asset={this.state.video} />
+        <Video video={this.state.video} />
       </section>
     );
   }

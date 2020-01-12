@@ -5,13 +5,21 @@ import "./Video.scss";
 export class Video extends Component {
   render() {
     return (
-      <>
+      <div className="video">
         <div
-          className="theoplayer-container video-js theoplayer-skin"
-          data-thumbnail-url={this.props.asset.thumbnailUrl}
-          data-playback-url={this.props.asset.playbackUrl}
+          className="video__player theoplayer-container theoplayer-skin video-js"
+          data-thumbnail-url={this.props.video.thumbnailUrl}
+          data-playback-url={this.props.video.playbackUrl}
         />
-      </>
+        <ul className="video__labels">
+          {this.props.video.labels &&
+            this.props.video.labels.slice(0, 3).map((label, index) => (
+              <li key={index} className="video__label">
+                {label}
+              </li>
+            ))}
+        </ul>
+      </div>
     );
   }
 }

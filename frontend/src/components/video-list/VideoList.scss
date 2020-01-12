@@ -1,0 +1,17 @@
+@import "src/variables";
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 100%);
+  grid-gap: 1rem;
+  justify-content: space-between;
+
+  @media screen and (min-width: $tablet) {
+    grid-template-columns: repeat(auto-fill, calc(33% - 1rem));
+  }
+
+  @media screen and (min-width: $desktop) {
+    grid-template-columns: repeat(auto-fill, calc(25% - 1rem));
+  }
+}
+

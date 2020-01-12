@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { VideoPreview } from "../video-preview/VideoPreview";
+import { LAYOUT, VideoPreview } from "../video-preview/VideoPreview";
 import "./VideoGrid.scss";
 
 export class VideoGrid extends Component {
@@ -7,7 +7,7 @@ export class VideoGrid extends Component {
     return (
       <div className="video-grid">
         {this.props.videos.map((video, index) => (
-          <VideoPreview key={index} video={video} />
+          <VideoPreview key={index} video={video} layout={LAYOUT.VERTICAL} />
         ))}
       </div>
     );

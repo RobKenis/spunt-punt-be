@@ -1,0 +1,23 @@
+@import "./src/variables";
+
+.detail {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+
+  div:first-of-type {
+    flex-basis: 100%;
+
+    @media screen and (min-width: $desktop) {
+      flex-basis: 75%;
+    }
+  }
+
+  div:last-of-type {
+    flex-basis: 100%;
+
+    @media screen and (min-width: $desktop) {
+      flex-basis: calc(25% - #{$spacing-lg});
+    }
+  }
+}

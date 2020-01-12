@@ -113,6 +113,9 @@ video_table = template.add_resource(Table(
     ), AttributeDefinition(
         AttributeName='videoState',
         AttributeType='S',
+    ), AttributeDefinition(
+        AttributeName='upvotes',
+        AttributeType='N',
     )],
     KeySchema=[KeySchema(
         AttributeName='videoId',
@@ -125,6 +128,18 @@ video_table = template.add_resource(Table(
             KeyType='HASH',
         ), KeySchema(
             AttributeName='lastModified',
+            KeyType='RANGE',
+        )],
+        Projection=Projection(
+            ProjectionType='ALL',
+        ),
+    ), GlobalSecondaryIndex(
+        IndexName='upvotedInState',
+        KeySchema=[KeySchema(
+            AttributeName='videoState',
+            KeyType='HASH',
+        ), KeySchema(
+            AttributeName='upvotes',
             KeyType='RANGE',
         )],
         Projection=Projection(

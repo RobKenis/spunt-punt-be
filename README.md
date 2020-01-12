@@ -21,3 +21,4 @@ event is consumed, the state from the SNS message is saved as an event in the `v
 - METADATA_FLOW_STARTED
 - REKOGNITION_STARTED
 - VIDEO_LABELS_COLLECTED
+- VIDEO_UPVOTED

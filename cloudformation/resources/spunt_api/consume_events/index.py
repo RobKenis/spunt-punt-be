@@ -28,7 +28,7 @@ def _new_video_uploaded(event):
             Key={
                 'videoId': {'S': event['videoId']},
             },
-            UpdateExpression="SET lastModified = :lastModified, videoState = :state",
+            UpdateExpression="SET lastModified = :lastModified, videoState = :state, upvotes = :upvotes",
             ConditionExpression="attribute_not_exists(videoId)",
             ExpressionAttributeValues={
                 ':lastModified': {
@@ -36,6 +36,9 @@ def _new_video_uploaded(event):
                 },
                 ':state': {
                     'S': 'PROCESSING',
+                },
+                ':upvotes': {
+                    'N': '0',
                 },
             },
         )
@@ -98,6 +101,29 @@ def _video_labels_collected(event):
         print("Video with id [{id}] not found to update.".format(id=event['videoId']))
 
 
+def _video_upvoted(event):
+    try:
+        client.update_item(
+            TableName=VIDEO_TABLE,
+            Key={
+                'videoId': {'S': event['videoId']},
+            },
+            UpdateExpression="ADD upvotes :amount SET lastModified = :lastModified",
+            ConditionExpression="attribute_exists(videoId)",
+            ExpressionAttributeValues={
+                ':lastModified': {
+                    'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat(),
+                },
+                ':amount': {
+                    'N': '1'
+                }
+            },
+        )
+        print("Saved new video with id: [{id}]".format(id=event['videoId']))
+    except ClientError:
+        print("Video with id [{id}] not found to update.".format(id=event['videoId']))
+
+
 def handler(event, context):
     for record in event['Records']:
         body = json.loads(record['body'])
@@ -110,6 +136,7 @@ def handler(event, context):
             'METADATA_FLOW_STARTED': _unsupported_event,
             'REKOGNITION_STARTED': _unsupported_event,
             'VIDEO_LABELS_COLLECTED': _video_labels_collected,
+            'VIDEO_UPVOTED': _video_upvoted,
         }
         event_handler = switch.get(body['type'], _error_handler)
         event_handler(body)

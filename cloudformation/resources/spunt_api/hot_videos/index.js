@@ -1,51 +1,33 @@
-const body = {
-    videos: [{
-        id: '3e72bdc6-28e3-11ea-abb5-5a2040ddf892',
-        title: 'Very pretty title',
-        playbackUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd',
-        thumbnailUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.jpg',
-    }, {
-        id: '3e72bdc6-28e3-11ea-abb5-5a2040ddf892',
-        title: 'Very pretty title',
-        playbackUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd',
-        thumbnailUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.jpg',
-    }, {
-        id: '3e72bdc6-28e3-11ea-abb5-5a2040ddf892',
-        title: 'Very pretty title',
-        playbackUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd',
-        thumbnailUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.jpg',
-    }, {
-        id: '3e72bdc6-28e3-11ea-abb5-5a2040ddf892',
-        title: 'Very pretty title',
-        playbackUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd',
-        thumbnailUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.jpg',
-    }, {
-        id: '3e72bdc6-28e3-11ea-abb5-5a2040ddf892',
-        title: 'Very pretty title',
-        playbackUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd',
-        thumbnailUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.jpg',
-    }, {
-        id: '3e72bdc6-28e3-11ea-abb5-5a2040ddf892',
-        title: 'Very pretty title',
-        playbackUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd',
-        thumbnailUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.jpg',
-    }, {
-        id: '3e72bdc6-28e3-11ea-abb5-5a2040ddf892',
-        title: 'Very pretty title',
-        playbackUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.mpd',
-        thumbnailUrl: 'https://videos.spunt.be/3e72bdc6-28e3-11ea-abb5-5a2040ddf892/3e72bdc6-28e3-11ea-abb5-5a2040ddf892.jpg',
-    }]
-};
+const AWS = require('aws-sdk');
 
-exports.handler = (event, context, callback) => {
+AWS.config.update({region: 'us-east-1'});
+const documentClient = new AWS.DynamoDB.DocumentClient();
+
+exports.handler = async (event, context, callback) => {
+    const request = event.Records[0].cf.request;
+    const videoTable = request.origin.custom.customHeaders["x-video-table"][0].value;
+    const {Items: items} = await documentClient.query({
+        TableName: videoTable,
+        IndexName: 'upvotedInState',
+        KeyConditionExpression: 'videoState = :state',
+        ExpressionAttributeValues: {
+            ':state': 'AVAILABLE'
+        },
+        Limit: 20,
+        ScanIndexForward: false,
+    }).promise();
+    const videos = items.map(item => {
+        const {lastModified, videoState, ...video} = item;
+        return video;
+    });
     const response = {
-        status: '200',
-        statusDescription: 'OK',
-        body: JSON.stringify(body),
+        status: "200",
+        statusDescription: "OK",
+        body: JSON.stringify({videos: videos}),
         headers: {
-            'access-control-allow-origin': [{key: 'Access-Control-Allow-Origin', value: "*"}],
-            'access-control-allow-methods': [{key: 'Access-Control-Allow-Methods', value: "GET, HEAD, OPTIONS"}],
-            'access-control-max-age': [{key: 'Access-Control-Max-Age', value: "86400"}],
+            "access-control-allow-origin": [{key: "Access-Control-Allow-Origin", value: "*"}],
+            "access-control-allow-methods": [{key: "Access-Control-Allow-Methods", value: "GET, HEAD, OPTIONS"}],
+            "access-control-max-age": [{key: "Access-Control-Max-Age", value: "86400"}]
         }
     };
     callback(null, response);

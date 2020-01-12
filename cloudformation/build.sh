@@ -78,3 +78,8 @@ cd resources/spunt_api/consume_events/
 zip -r consume_events.zip index.py
 mv consume_events.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/upvote/
+zip -r upvote.zip index.py
+mv upvote.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY

@@ -86,6 +86,12 @@ consume_events_code_key = template.add_parameter(Parameter(
     Default='lambda-code/api/consume_events.zip',
 ))
 
+upvote_lambda_code_key = template.add_parameter(Parameter(
+    'Upvote',
+    Type=constants.STRING,
+    Default='lambda-code/api/upvote.zip',
+))
+
 template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(trending_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(hot_videos_lambda_code_key, 'Lambda Keys')
@@ -93,6 +99,7 @@ template.add_parameter_to_group(recommended_videos_lambda_code_key, 'Lambda Keys
 template.add_parameter_to_group(get_video_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(rewrite_downvote_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(consume_events_code_key, 'Lambda Keys')
+template.add_parameter_to_group(upvote_lambda_code_key, 'Lambda Keys')
 
 video_table = template.add_resource(Table(
     'VideoTable',
@@ -106,6 +113,9 @@ video_table = template.add_resource(Table(
     ), AttributeDefinition(
         AttributeName='videoState',
         AttributeType='S',
+    ), AttributeDefinition(
+        AttributeName='upvotes',
+        AttributeType='N',
     )],
     KeySchema=[KeySchema(
         AttributeName='videoId',
@@ -118,6 +128,18 @@ video_table = template.add_resource(Table(
             KeyType='HASH',
         ), KeySchema(
             AttributeName='lastModified',
+            KeyType='RANGE',
+        )],
+        Projection=Projection(
+            ProjectionType='ALL',
+        ),
+    ), GlobalSecondaryIndex(
+        IndexName='upvotedInState',
+        KeySchema=[KeySchema(
+            AttributeName='videoState',
+            KeyType='HASH',
+        ), KeySchema(
+            AttributeName='upvotes',
             KeyType='RANGE',
         )],
         Projection=Projection(
@@ -274,6 +296,55 @@ health_method = template.add_resource(Method(
     ],
 ))
 
+upvote_role = template.add_resource(Role(
+    'UpvoteRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[
+        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
+    ],
+    Policies=[iam.Policy(
+        PolicyName="api-invoke-lambda",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ['lambda:InvokeFunction'],
+                "Resource": '*',
+                "Effect": "Allow",
+            }],
+        })],
+))
+
+upvote_function = template.add_resource(Function(
+    'UpvoteFunction',
+    Description='Creates an upvote event.',
+    Runtime='python3.7',
+    Handler='index.handler',
+    Role=GetAtt(upvote_role, 'Arn'),
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(upvote_lambda_code_key),
+    ),
+    Environment=Environment(
+        Variables={
+            'VIDEO_EVENTS_TABLE': ImportValue(Join('-', [Ref(core_stack), 'VideoEventsTable', 'Ref'])),
+        }
+    )
+))
+
+template.add_resource(LogGroup(
+    "UpvoteFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(upvote_function)]),
+    RetentionInDays=7,
+))
+
 upvote_method = template.add_resource(Method(
     "UpvoteMethod",
     ApiKeyRequired=True,
@@ -281,29 +352,27 @@ upvote_method = template.add_resource(Method(
     AuthorizationType="NONE",
     ResourceId=Ref(upvote_resource),
     HttpMethod="POST",
-    OperationName='mock',
     Integration=Integration(
-        Type='MOCK',
-        IntegrationResponses=[IntegrationResponse(
-            ResponseTemplates={
-                'application/json': "{\"message\": \"OK\"}"
-            },
-            StatusCode='200'
-        )],
-        PassthroughBehavior='WHEN_NO_TEMPLATES',
-        RequestTemplates={
-            'application/json': "{\"statusCode\": 200, \"message\": \"OK\"}"
-        },
+        Credentials=GetAtt(upvote_role, "Arn"),
+        Type="AWS",
+        IntegrationHttpMethod='POST',
+        IntegrationResponses=[
+            IntegrationResponse(
+                StatusCode='200'
+            )
+        ],
+        Uri=Join("", [
+            "arn:aws:apigateway:", Ref(AWS_REGION), ":lambda:path/2015-03-31/functions/",
+            GetAtt(upvote_function, "Arn"),
+            "/invocations"
+        ])
     ),
     MethodResponses=[
         MethodResponse(
-            'HealthResponse',
-            ResponseModels={
-                'application/json': Ref(health_model),
-            },
-            StatusCode='200',
+            "UpvoteResponse",
+            StatusCode='200'
         )
-    ],
+    ]
 ))
 
 upload_method = template.add_resource(Method(
@@ -604,14 +673,21 @@ api_cdn = template.add_resource(Distribution(
             ForwardedValues=ForwardedValues(
                 QueryString=False,
             ),
-            MinTTL=120,  # 2 minutes
-            DefaultTTL=300,  # 5 minutes
-            MaxTTL=300,  # 5 minutes
             Compress=True,
             LambdaFunctionAssociations=[LambdaFunctionAssociation(
                 EventType='origin-request',
                 LambdaFunctionARN=VersionRef(rewrite_downvote_function),
             )],
+        ), CacheBehavior(
+            TargetOriginId="apigateway",
+            PathPattern='/v1/upvote',
+            ViewerProtocolPolicy='redirect-to-https',
+            AllowedMethods=['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'],
+            CachedMethods=['GET', 'HEAD', 'OPTIONS'],
+            ForwardedValues=ForwardedValues(
+                QueryString=False,
+            ),
+            Compress=True,
         )],
         Enabled=True,
         HttpVersion='http2',

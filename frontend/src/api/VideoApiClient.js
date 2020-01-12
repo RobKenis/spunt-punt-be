@@ -4,20 +4,25 @@ const api = axios.create({
   baseURL: "https://api.spunt.be/",
 });
 
-export const getAllVideos = () => {
-  return api.get("/videos/all");
+const getVideosOfType = async (type, limit) => {
+  const response = await api.get(`/videos/${type}`);
+  return response.data.videos.slice(0, limit);
 };
 
-export const getHotVideos = () => {
-  return api.get("/videos/hot");
+export const getAllVideos = async (limit) => {
+  return getVideosOfType("all", limit);
 };
 
-export const getTrendingVideos = () => {
-  return api.get("/videos/trending");
+export const getHotVideos = async (limit) => {
+  return getVideosOfType("hot", limit);
 };
 
-export const getRecommendedVideos = () => {
-  return api.get("/videos/recommendations");
+export const getTrendingVideos = async (limit) => {
+  return getVideosOfType("trending", limit);
+};
+
+export const getRecommendedVideos = async (limit) => {
+  return getVideosOfType("recommendations", limit);
 };
 
 export const getVideo = (id) => {

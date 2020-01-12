@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import { getHotVideos } from "../api/VideoApiClient";
 import { VideoGrid } from "../components/video-grid/VideoGrid";
 
+const AMOUNT_OF_VIDEOS_TO_DISPLAY = 8;
+
 export class Hot extends Component {
   state = {
     videos: [],
@@ -9,9 +11,9 @@ export class Hot extends Component {
 
   constructor(props, context) {
     super(props, context);
-    getHotVideos().then((response) => {
+    getHotVideos(AMOUNT_OF_VIDEOS_TO_DISPLAY).then((videos) => {
       this.setState({
-        videos: response.data.videos,
+        videos: videos,
       });
     });
   }
@@ -20,7 +22,7 @@ export class Hot extends Component {
     return (
       <section className="container section">
         <h1 className="title">Hot</h1>
-        <VideoGrid videos={this.state.videos} />
+        <VideoGrid videos={this.state.videos} amount={AMOUNT_OF_VIDEOS_TO_DISPLAY} />
       </section>
     );
   }

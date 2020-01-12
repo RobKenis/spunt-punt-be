@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import { getTrendingVideos } from "../api/VideoApiClient";
 import { VideoGrid } from "../components/video-grid/VideoGrid";
 
+const AMOUNT_OF_VIDEOS_TO_DISPLAY = 8;
+
 export class Trending extends Component {
   state = {
     videos: [],
@@ -9,9 +11,9 @@ export class Trending extends Component {
 
   constructor(props, context) {
     super(props, context);
-    getTrendingVideos().then((response) => {
+    getTrendingVideos(AMOUNT_OF_VIDEOS_TO_DISPLAY).then((videos) => {
       this.setState({
-        videos: response.data.videos,
+        videos: videos,
       });
     });
   }

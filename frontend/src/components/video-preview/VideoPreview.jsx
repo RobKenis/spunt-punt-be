@@ -1,6 +1,11 @@
 import React, { Component } from "react";
 import "./VideoPreview.scss";
 
+export const LAYOUT = {
+  HORIZONTAL: "Horizontal",
+  VERTICAL: "Vertical",
+};
+
 export class VideoPreview extends Component {
   render() {
     return (

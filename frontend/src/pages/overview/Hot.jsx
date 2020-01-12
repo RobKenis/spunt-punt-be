@@ -1,6 +1,6 @@
 import React, { Component } from "react";
-import { getHotVideos } from "../api/VideoApiClient";
-import { VideoGrid } from "../components/video-grid/VideoGrid";
+import { getHotVideos } from "../../api/VideoApiClient";
+import { VideoGrid } from "../../components/video-grid/VideoGrid";
 
 const AMOUNT_OF_VIDEOS_TO_DISPLAY = 8;
 

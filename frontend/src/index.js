@@ -2,12 +2,12 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { BrowserRouter, Switch, Route } from "react-router-dom";
 
-import { Home } from "./pages/Home";
-import { Hot } from "./pages/Hot";
-import { Trending } from "./pages/Trending";
-import { Detail } from "./pages/Detail";
-import { SignUp } from "./pages/SignUp";
-import { LogIn } from "./pages/LogIn";
+import { Home } from "./pages/overview/Home";
+import { Hot } from "./pages/overview/Hot";
+import { Trending } from "./pages/overview/Trending";
+import { Detail } from "./pages/detail/Detail";
+import { SignUp } from "./pages/auth/SignUp";
+import { LogIn } from "./pages/auth/LogIn";
 import { NavBar } from "./components/navbar/NavBar";
 
 import "./index.scss";

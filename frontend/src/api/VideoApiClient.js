@@ -25,6 +25,7 @@ export const getRecommendedVideos = async (limit) => {
   return getVideosOfType("recommendations", limit);
 };
 
-export const getVideo = (id) => {
-  return api.get("/video/" + id);
+export const getVideo = async (id) => {
+  const response = await api.get("/video/" + id);
+  return response.data;
 };

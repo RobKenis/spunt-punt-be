@@ -1,5 +1,9 @@
 @import "src/variables";
 
+.video {
+  margin-bottom: $spacing-xl;
+}
+
 .video__player {
   margin-bottom: $spacing-lg;
 }
@@ -12,7 +16,7 @@
 }
 
 .video__label {
-  background-color: $primary;
+  background-color: white;
   border-radius: 3px;
   color: black;
   display: inline;

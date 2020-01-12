@@ -1,6 +1,41 @@
 @import "src/variables";
 
 .video-preview {
+  position: relative;
+}
+
+.video-preview__placeholder {
+  color: white;
+  font-size: 4rem;
+  margin-top: -((9 / 16) * 100%);
+
+  span {
+    color: $primary;
+  }
+}
+
+.video-preview__aspect-ratio--outer {
+  align-items: center;
+  background-color: $grey-light;
+  display: flex;
+  height: 0;
+  justify-content: center;
   margin-bottom: $spacing-lg;
+  overflow: hidden;
+  padding-top: (9 / 16) * 100%;
+  position: relative;
   width: 100%;
+}
+
+.video-preview__aspect-ratio--inner {
+  height: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+
+  img {
+    height: auto;
+    width: 100%;
+  }
 }

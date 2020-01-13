@@ -46,6 +46,11 @@ export class NavBar extends Component {
               <a className="navbar-item" href="/trending">
                 <FontAwesomeIcon icon={faBolt} size="sm" className="navbar-item-icon" fixedWidth /> Trending
               </a>
+              <div className="navbar-item">
+                <a className="button is-light" href="/upload">
+                  Upload
+                </a>
+              </div>
             </div>
             <div className="navbar-end">
               <div className="navbar-item">

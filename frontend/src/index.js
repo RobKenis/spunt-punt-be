@@ -5,6 +5,7 @@ import { BrowserRouter, Switch, Route } from "react-router-dom";
 import { Home } from "./pages/overview/Home";
 import { Hot } from "./pages/overview/Hot";
 import { Trending } from "./pages/overview/Trending";
+import { Upload } from "./pages/upload/Upload";
 import { Detail } from "./pages/detail/Detail";
 import { SignUp } from "./pages/auth/SignUp";
 import { LogIn } from "./pages/auth/LogIn";
@@ -19,6 +20,7 @@ ReactDOM.render(
       <Route exact path="/" component={Home} />
       <Route exact path="/hot" component={Hot} />
       <Route exact path="/trending" component={Trending} />
+      <Route exact path="/upload" component={Upload} />
       <Route exact path="/video/:id" component={Detail} />
       <Route exact path="/sign-up" component={SignUp} />
       <Route exact path="/log-in" component={LogIn} />

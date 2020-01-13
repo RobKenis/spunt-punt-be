@@ -1,0 +1,15 @@
+@import "src/variables";
+
+.file {
+  margin-bottom: $spacing-lg;
+}
+
+.file-icon {
+  margin-right: 0 !important;
+}
+
+.file-name {
+  background-color: white !important;
+  border-color: white !important;
+  color: black;
+}

@@ -1,3 +1,5 @@
+import json
+
 from troposphere import Template, AWS_STACK_NAME, Ref, ImportValue, GetAtt, Join, Parameter, constants, AWS_REGION, iam, \
     AWSHelperFn, awslambda
 from troposphere.apigateway import RestApi, EndpointConfiguration, Resource, Method, Integration, MethodResponse, Model, \
@@ -22,6 +24,8 @@ class VersionRef(AWSHelperFn):
 
 stage_name = 'v1'
 api_key_secret = 'yeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeet'
+
+UPLOAD_BUCKET = 'spunt-video-encoding-engine-upload'
 
 template = Template(Description='API for spunt.be')
 template.set_transform('AWS::Serverless-2016-10-31')
@@ -92,6 +96,12 @@ upvote_lambda_code_key = template.add_parameter(Parameter(
     Default='lambda-code/api/upvote.zip',
 ))
 
+upload_lambda_code_key = template.add_parameter(Parameter(
+    'Upload',
+    Type=constants.STRING,
+    Default='lambda-code/api/upload.zip',
+))
+
 template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(trending_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(hot_videos_lambda_code_key, 'Lambda Keys')
@@ -100,6 +110,7 @@ template.add_parameter_to_group(get_video_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(rewrite_downvote_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(consume_events_code_key, 'Lambda Keys')
 template.add_parameter_to_group(upvote_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(upload_lambda_code_key, 'Lambda Keys')
 
 video_table = template.add_resource(Table(
     'VideoTable',
@@ -296,6 +307,49 @@ health_method = template.add_resource(Method(
     ],
 ))
 
+# This should be done with a mock method with mocked response headers. But I just want it to work right now.
+options_role = template.add_resource(Role(
+    'OptionsRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[
+        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
+    ],
+    Policies=[iam.Policy(
+        PolicyName="api-invoke-lambda",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ['lambda:InvokeFunction'],
+                "Resource": '*',
+                "Effect": "Allow",
+            }],
+        })],
+))
+
+with open('resources/spunt_api/options/index.py', 'r') as lambda_code:
+    options_function = template.add_resource(Function(
+        'OptionsFunction',
+        Description='Returns response with CORS headers for everyone.',
+        Runtime='python3.7',
+        Handler='index.handler',
+        Role=GetAtt(options_role, 'Arn'),
+        InlineCode=lambda_code.read(),
+    ))
+
+template.add_resource(LogGroup(
+    "OptionsFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(options_function)]),
+    RetentionInDays=7,
+))
+
 upvote_role = template.add_resource(Role(
     'UpvoteRole',
     Path="/",
@@ -354,7 +408,7 @@ upvote_method = template.add_resource(Method(
     HttpMethod="POST",
     Integration=Integration(
         Credentials=GetAtt(upvote_role, "Arn"),
-        Type="AWS",
+        Type="AWS_PROXY",
         IntegrationHttpMethod='POST',
         IntegrationResponses=[
             IntegrationResponse(
@@ -375,6 +429,91 @@ upvote_method = template.add_resource(Method(
     ]
 ))
 
+upvote_options_method = template.add_resource(Method(
+    "UpvoteOptionsMethod",
+    ApiKeyRequired=False,
+    RestApiId=Ref(api_gateway),
+    AuthorizationType="NONE",
+    ResourceId=Ref(upvote_resource),
+    HttpMethod="OPTIONS",
+    Integration=Integration(
+        Credentials=GetAtt(options_role, "Arn"),
+        Type="AWS_PROXY",
+        IntegrationHttpMethod='POST',
+        IntegrationResponses=[
+            IntegrationResponse(
+                StatusCode='200'
+            )
+        ],
+        Uri=Join("", [
+            "arn:aws:apigateway:", Ref(AWS_REGION), ":lambda:path/2015-03-31/functions/",
+            GetAtt(options_function, "Arn"),
+            "/invocations"
+        ])
+    ),
+    MethodResponses=[
+        MethodResponse(
+            "OptionsResponse",
+            StatusCode='200'
+        )
+    ]
+))
+
+upload_role = template.add_resource(Role(
+    'UploadRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[
+        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
+    ],
+    Policies=[iam.Policy(
+        PolicyName="api-invoke-lambda",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ['lambda:InvokeFunction'],
+                "Resource": '*',
+                "Effect": "Allow",
+            }, {
+                "Action": ['s3:PutObject'],
+                "Resource": [
+                    Join('', ['arn:aws:s3:::', UPLOAD_BUCKET, '/*'])
+                ],
+                "Effect": "Allow",
+            }],
+        })],
+))
+
+upload_function = template.add_resource(Function(
+    'UploadFunction',
+    Description='Creates a new video event.',
+    Runtime='python3.7',
+    Handler='index.handler',
+    Role=GetAtt(upload_role, 'Arn'),
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(upload_lambda_code_key),
+    ),
+    Environment=Environment(
+        Variables={
+            'VIDEO_EVENTS_TABLE': ImportValue(Join('-', [Ref(core_stack), 'VideoEventsTable', 'Ref'])),
+        }
+    )
+))
+
+template.add_resource(LogGroup(
+    "UploadFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(upload_function)]),
+    RetentionInDays=7,
+))
+
 upload_method = template.add_resource(Method(
     "UploadMethod",
     ApiKeyRequired=True,
@@ -382,29 +521,57 @@ upload_method = template.add_resource(Method(
     AuthorizationType="NONE",
     ResourceId=Ref(upload_resource),
     HttpMethod="POST",
-    OperationName='mock',
     Integration=Integration(
-        Type='MOCK',
-        IntegrationResponses=[IntegrationResponse(
-            ResponseTemplates={
-                'application/json': "{\"message\": \"OK\"}"
-            },
-            StatusCode='200'
-        )],
-        PassthroughBehavior='WHEN_NO_TEMPLATES',
-        RequestTemplates={
-            'application/json': "{\"statusCode\": 200, \"message\": \"OK\"}"
-        },
+        Credentials=GetAtt(upvote_role, "Arn"),
+        Type="AWS_PROXY",
+        IntegrationHttpMethod='POST',
+        IntegrationResponses=[
+            IntegrationResponse(
+                StatusCode='200'
+            )
+        ],
+        Uri=Join("", [
+            "arn:aws:apigateway:", Ref(AWS_REGION), ":lambda:path/2015-03-31/functions/",
+            GetAtt(upload_function, "Arn"),
+            "/invocations"
+        ])
     ),
     MethodResponses=[
         MethodResponse(
-            'HealthResponse',
-            ResponseModels={
-                'application/json': Ref(health_model),
-            },
-            StatusCode='200',
+            "UploadResponse",
+            StatusCode='200'
         )
-    ],
+    ]
+))
+
+upload_options_method = template.add_resource(Method(
+    "UploadOptionsMethod",
+    ApiKeyRequired=False,
+    RestApiId=Ref(api_gateway),
+    AuthorizationType="NONE",
+    ResourceId=Ref(upload_resource),
+    HttpMethod="OPTIONS",
+    Integration=Integration(
+        Credentials=GetAtt(options_role, "Arn"),
+        Type="AWS_PROXY",
+        IntegrationHttpMethod='POST',
+        IntegrationResponses=[
+            IntegrationResponse(
+                StatusCode='200'
+            )
+        ],
+        Uri=Join("", [
+            "arn:aws:apigateway:", Ref(AWS_REGION), ":lambda:path/2015-03-31/functions/",
+            GetAtt(options_function, "Arn"),
+            "/invocations"
+        ])
+    ),
+    MethodResponses=[
+        MethodResponse(
+            "OptionsResponse",
+            StatusCode='200'
+        )
+    ]
 ))
 
 deployment = template.add_resource(Deployment(
@@ -681,6 +848,16 @@ api_cdn = template.add_resource(Distribution(
         ), CacheBehavior(
             TargetOriginId="apigateway",
             PathPattern='/v1/upvote',
+            ViewerProtocolPolicy='redirect-to-https',
+            AllowedMethods=['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'],
+            CachedMethods=['GET', 'HEAD', 'OPTIONS'],
+            ForwardedValues=ForwardedValues(
+                QueryString=False,
+            ),
+            Compress=True,
+        ), CacheBehavior(
+            TargetOriginId="apigateway",
+            PathPattern='/v1/upload',
             ViewerProtocolPolicy='redirect-to-https',
             AllowedMethods=['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'],
             CachedMethods=['GET', 'HEAD', 'OPTIONS'],

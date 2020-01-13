@@ -83,3 +83,9 @@ cd resources/spunt_api/upvote/
 zip -r upvote.zip index.py
 mv upvote.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/upload/
+zip -r upload.zip index.py
+mv upload.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+

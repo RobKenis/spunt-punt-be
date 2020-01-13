@@ -21,6 +21,36 @@ def _unsupported_event(event):
     print("Handler for event with type: [{type}] is not implemented.".format(type=event['type']))
 
 
+def _new_video_created(event):
+    try:
+        client.update_item(
+            TableName=VIDEO_TABLE,
+            Key={
+                'videoId': {'S': event['videoId']},
+            },
+            UpdateExpression="SET lastModified = :lastModified, videoState = :state, "
+                             "upvotes = :upvotes, title = :title",
+            ConditionExpression="attribute_not_exists(videoId)",
+            ExpressionAttributeValues={
+                ':lastModified': {
+                    'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat(),
+                },
+                ':state': {
+                    'S': 'NEW',
+                },
+                ':upvotes': {
+                    'N': '0',
+                },
+                ':title': {
+                    'S': json.loads(event['metadata'])['title'],
+                },
+            },
+        )
+        print("Saved new video with id: [{id}]".format(id=event['videoId']))
+    except ClientError:
+        print("Did not save video with id [{id}] because item already exists.".format(id=event['videoId']))
+
+
 def _new_video_uploaded(event):
     try:
         client.update_item(
@@ -28,8 +58,8 @@ def _new_video_uploaded(event):
             Key={
                 'videoId': {'S': event['videoId']},
             },
-            UpdateExpression="SET lastModified = :lastModified, videoState = :state, upvotes = :upvotes",
-            ConditionExpression="attribute_not_exists(videoId)",
+            UpdateExpression="SET lastModified = :lastModified, videoState = :state",
+            ConditionExpression="attribute_exists(videoId)",
             ExpressionAttributeValues={
                 ':lastModified': {
                     'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat(),
@@ -37,14 +67,11 @@ def _new_video_uploaded(event):
                 ':state': {
                     'S': 'PROCESSING',
                 },
-                ':upvotes': {
-                    'N': '0',
-                },
             },
         )
-        print("Saved new video with id: [{id}]".format(id=event['videoId']))
+        print("Saved video with id: [{id}]".format(id=event['videoId']))
     except ClientError:
-        print("Did not save video with id [{id}] because item already exists.".format(id=event['videoId']))
+        print("Video with id [{id}] not found to update.".format(id=event['videoId']))
 
 
 def _encoding_completed(event):
@@ -128,6 +155,7 @@ def handler(event, context):
     for record in event['Records']:
         body = json.loads(record['body'])
         switch = {
+            'NEW_VIDEO_CREATED': _new_video_created,
             'NEW_VIDEO_UPLOADED': _new_video_uploaded,
             'ENCODING_REQUESTED': _unsupported_event,
             'ENCODING_STARTED': _unsupported_event,

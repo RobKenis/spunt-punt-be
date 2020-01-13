@@ -13,6 +13,7 @@ the Elastic Transcoder Pipeline to encode the `mp4` to `mpd`.
 event is consumed, the state from the SNS message is saved as an event in the `video-events-table`.
 5. That's all, the video is now available to be played.
 #### Supported events
+- NEW_VIDEO_CREATED
 - NEW_VIDEO_UPLOADED
 - ENCODING_REQUESTED
 - ENCODING_STARTED

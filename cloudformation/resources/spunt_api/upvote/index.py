@@ -10,25 +10,33 @@ dynamo = boto3.client('dynamodb')
 
 
 def handler(event, context):
-    if 'videoId' in event and 'userId' in event:
+    body = json.loads(event['body'])
+    if 'videoId' in body and 'userId' in body:
         # Add some validation on existing videoId or something.
         dynamo.put_item(
             TableName=VIDEO_EVENTS_TABLE,
             Item={
-                'videoId': {'S': event['videoId']},
+                'videoId': {'S': body['videoId']},
                 'type': {'S': 'VIDEO_UPVOTED'},
                 'timestamp': {'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()},
-                'metadata': {'S': json.dumps({'userId': event['userId']})}
+                'metadata': {'S': json.dumps({'userId': body['userId']})}
             }
         )
-        print("Saved upvote event for [{video}] by [{user}]".format(video=event['videoId'], user=event['userId']))
+        print("Saved upvote event for [{video}] by [{user}]".format(video=body['videoId'], user=body['userId']))
         return {
-            'status': "200",
-            'statusDescription': "OK",
+            'statusCode': "200",
+            'body': json.dumps({}),
+            "isBase64Encoded": False,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, PUT, POST, DELETE, OPTIONS',
+                'Access-Control-Max-Age': '86400',
+            },
         }
     else:
         print("VideoId and/or UserId not present.")
         return {
-            'status': "400",
-            'statusDescription': "Bad request",
+            'statusCode': "400",
+            'body': json.dumps({}),
+            "isBase64Encoded": False,
         }

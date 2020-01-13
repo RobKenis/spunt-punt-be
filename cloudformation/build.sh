@@ -89,3 +89,27 @@ zip -r upload.zip index.py
 mv upload.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
 
+cd resources/spunt_auth/create_auth_challenge/
+zip -r create_auth_challenge.zip index.js
+mv create_auth_challenge.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/spunt_auth/verify_auth_challenge_response/
+zip -r verify_auth_challenge_response.zip index.js
+mv verify_auth_challenge_response.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/spunt_auth/pre_sign_up/
+zip -r pre_sign_up.zip index.js
+mv pre_sign_up.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/spunt_auth/post_authentication/
+zip -r post_authentication.zip index.js
+mv post_authentication.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+
+cd resources/spunt_auth/define_auth_challenge/
+zip -r define_auth_challenge.zip index.js
+mv define_auth_challenge.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY

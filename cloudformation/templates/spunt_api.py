@@ -1,3 +1,5 @@
+import json
+
 from troposphere import Template, AWS_STACK_NAME, Ref, ImportValue, GetAtt, Join, Parameter, constants, AWS_REGION, iam, \
     AWSHelperFn, awslambda
 from troposphere.apigateway import RestApi, EndpointConfiguration, Resource, Method, Integration, MethodResponse, Model, \
@@ -305,6 +307,49 @@ health_method = template.add_resource(Method(
     ],
 ))
 
+# This should be done with a mock method with mocked response headers. But I just want it to work right now.
+options_role = template.add_resource(Role(
+    'OptionsRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]},
+        }],
+    },
+    ManagedPolicyArns=[
+        ImportValue(Join('-', [Ref(core_stack), 'LambdaDefaultPolicy', 'Arn'])),
+    ],
+    Policies=[iam.Policy(
+        PolicyName="api-invoke-lambda",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ['lambda:InvokeFunction'],
+                "Resource": '*',
+                "Effect": "Allow",
+            }],
+        })],
+))
+
+with open('resources/spunt_api/options/index.py', 'r') as lambda_code:
+    options_function = template.add_resource(Function(
+        'OptionsFunction',
+        Description='Returns response with CORS headers for everyone.',
+        Runtime='python3.7',
+        Handler='index.handler',
+        Role=GetAtt(options_role, 'Arn'),
+        InlineCode=lambda_code.read(),
+    ))
+
+template.add_resource(LogGroup(
+    "OptionsFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(options_function)]),
+    RetentionInDays=7,
+))
+
 upvote_role = template.add_resource(Role(
     'UpvoteRole',
     Path="/",
@@ -379,6 +424,36 @@ upvote_method = template.add_resource(Method(
     MethodResponses=[
         MethodResponse(
             "UpvoteResponse",
+            StatusCode='200'
+        )
+    ]
+))
+
+upvote_options_method = template.add_resource(Method(
+    "UpvoteOptionsMethod",
+    ApiKeyRequired=False,
+    RestApiId=Ref(api_gateway),
+    AuthorizationType="NONE",
+    ResourceId=Ref(upvote_resource),
+    HttpMethod="OPTIONS",
+    Integration=Integration(
+        Credentials=GetAtt(options_role, "Arn"),
+        Type="AWS_PROXY",
+        IntegrationHttpMethod='POST',
+        IntegrationResponses=[
+            IntegrationResponse(
+                StatusCode='200'
+            )
+        ],
+        Uri=Join("", [
+            "arn:aws:apigateway:", Ref(AWS_REGION), ":lambda:path/2015-03-31/functions/",
+            GetAtt(options_function, "Arn"),
+            "/invocations"
+        ])
+    ),
+    MethodResponses=[
+        MethodResponse(
+            "OptionsResponse",
             StatusCode='200'
         )
     ]
@@ -464,6 +539,36 @@ upload_method = template.add_resource(Method(
     MethodResponses=[
         MethodResponse(
             "UploadResponse",
+            StatusCode='200'
+        )
+    ]
+))
+
+upload_options_method = template.add_resource(Method(
+    "UploadOptionsMethod",
+    ApiKeyRequired=False,
+    RestApiId=Ref(api_gateway),
+    AuthorizationType="NONE",
+    ResourceId=Ref(upload_resource),
+    HttpMethod="OPTIONS",
+    Integration=Integration(
+        Credentials=GetAtt(options_role, "Arn"),
+        Type="AWS_PROXY",
+        IntegrationHttpMethod='POST',
+        IntegrationResponses=[
+            IntegrationResponse(
+                StatusCode='200'
+            )
+        ],
+        Uri=Join("", [
+            "arn:aws:apigateway:", Ref(AWS_REGION), ":lambda:path/2015-03-31/functions/",
+            GetAtt(options_function, "Arn"),
+            "/invocations"
+        ])
+    ),
+    MethodResponses=[
+        MethodResponse(
+            "OptionsResponse",
             StatusCode='200'
         )
     ]

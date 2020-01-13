@@ -27,6 +27,11 @@ def handler(event, context):
             'statusCode': "200",
             'body': json.dumps({}),
             "isBase64Encoded": False,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, PUT, POST, DELETE, OPTIONS',
+                'Access-Control-Max-Age': '86400',
+            },
         }
     else:
         print("VideoId and/or UserId not present.")

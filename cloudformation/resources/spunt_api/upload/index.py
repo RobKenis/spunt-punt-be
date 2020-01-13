@@ -54,6 +54,11 @@ def handler(event, context):
                 'upload': _generate_presigned_url(key)
             }),
             "isBase64Encoded": False,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, PUT, POST, DELETE, OPTIONS',
+                'Access-Control-Max-Age': '86400',
+            },
         }
     else:
         print("Title and/or Filename not present.")

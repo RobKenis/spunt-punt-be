@@ -23,6 +23,8 @@ class VersionRef(AWSHelperFn):
 stage_name = 'v1'
 api_key_secret = 'yeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeet'
 
+UPLOAD_BUCKET = 'spunt-video-encoding-engine-upload'
+
 template = Template(Description='API for spunt.be')
 template.set_transform('AWS::Serverless-2016-10-31')
 
@@ -97,7 +99,6 @@ upload_lambda_code_key = template.add_parameter(Parameter(
     Type=constants.STRING,
     Default='lambda-code/api/upload.zip',
 ))
-
 
 template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(trending_videos_lambda_code_key, 'Lambda Keys')
@@ -404,6 +405,12 @@ upload_role = template.add_resource(Role(
             "Statement": [{
                 "Action": ['lambda:InvokeFunction'],
                 "Resource": '*',
+                "Effect": "Allow",
+            }, {
+                "Action": ['s3:PutObject'],
+                "Resource": [
+                    Join('', ['arn:aws:s3:::', UPLOAD_BUCKET, '/*'])
+                ],
                 "Effect": "Allow",
             }],
         })],

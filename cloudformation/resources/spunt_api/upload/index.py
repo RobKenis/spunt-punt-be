@@ -14,7 +14,8 @@ UPLOAD_BUCKET = 'spunt-video-encoding-engine-upload'  # Do not hard code, get fr
 
 
 def handler(event, context):
-    if 'title' in event and 'filename' in event:
+    body = json.loads(event['body'])
+    if 'title' in body and 'filename' in body:
         video_id = str(uuid.uuid1())
         dynamo.put_item(
             TableName=VIDEO_EVENTS_TABLE,
@@ -22,26 +23,27 @@ def handler(event, context):
                 'videoId': {'S': video_id},
                 'type': {'S': 'NEW_VIDEO_CREATED'},
                 'timestamp': {'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()},
-                'metadata': {'S': json.dumps({'title': event['title'], 'filename': event['filename']})}
+                'metadata': {'S': json.dumps({'title': body['title'], 'filename': body['filename']})}
             }
         )
         print("Saved new video event for [{video}].".format(video=video_id))
         return {
-            'status': "200",
-            'statusDescription': "OK",
+            'statusCode': "201",
             'body': json.dumps({
                 'videoId': video_id,
                 'metadata': {
                     'region': UPLOAD_REGION,
                     'bucket': UPLOAD_BUCKET,
-                    'key': "upload/{videoId}/{filename}".format(videoId=video_id, filename=event['filename']),
+                    'key': "upload/{videoId}/{filename}".format(videoId=video_id, filename=body['filename']),
                     'url': 'HERE_GOES_THE_PRESIGNED_URL',
                 }
             }),
+            "isBase64Encoded": False,
         }
     else:
         print("Title and/or Filename not present.")
         return {
-            'status': "400",
-            'statusDescription': "Bad request",
+            'statusCode': "400",
+            'body': json.dumps({}),
+            "isBase64Encoded": False,
         }

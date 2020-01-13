@@ -362,7 +362,7 @@ upvote_method = template.add_resource(Method(
     HttpMethod="POST",
     Integration=Integration(
         Credentials=GetAtt(upvote_role, "Arn"),
-        Type="AWS",
+        Type="AWS_PROXY",
         IntegrationHttpMethod='POST',
         IntegrationResponses=[
             IntegrationResponse(
@@ -441,7 +441,7 @@ upload_method = template.add_resource(Method(
     HttpMethod="POST",
     Integration=Integration(
         Credentials=GetAtt(upvote_role, "Arn"),
-        Type="AWS",
+        Type="AWS_PROXY",
         IntegrationHttpMethod='POST',
         IntegrationResponses=[
             IntegrationResponse(

@@ -1,0 +1,28 @@
+@import "src/variables";
+
+.sign-up {
+  max-width: 100%;
+
+  @media screen and (min-width: $desktop) {
+    max-width: 50% !important;
+  }
+}
+
+.sign-up__form {
+  .control.has-icons-left,
+  .control.has-icons-right, {
+    .input {
+      color: $grey-dark;
+
+      &:focus {
+        ~ .icon {
+          color: $grey-dark;
+        }
+      }
+    }
+
+    .input::placeholder {
+      color: $grey-light;
+    }
+  }
+}

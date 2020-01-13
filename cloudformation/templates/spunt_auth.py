@@ -1,89 +1,54 @@
 from troposphere import GetAtt, Join, Output, Not, Equals, Parameter, Ref, Template, AWSObject, \
     AWSProperty, AWS_STACK_NAME, ImportValue
 from troposphere.awslambda import Environment, Permission
-from troposphere.certificatemanager import Certificate, DomainValidationOption
 from troposphere.cognito import UserPool, UserPoolClient, Policies, PasswordPolicy, SchemaAttribute, LambdaConfig
 from troposphere.iam import Policy, PolicyType, Role
-from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
 from troposphere.serverless import Function, S3Location
 
 
-class CustomDomainConfig(AWSProperty):
-    props = {
-        'CertificateArn': (str, True),
-    }
-
-
-class UserPoolDomain(AWSObject):
-    resource_type = "AWS::Cognito::UserPoolDomain"
-
-    props = {
-        'Domain': (str, True),
-        'UserPoolId': (str, True),
-        'CustomDomainConfig': (CustomDomainConfig, False),
-    }
-
-
 template = Template(Description='Cognito with passwordless e-mail auth')
-
-dns_stack = template.add_parameter(Parameter(
-    'DnsStack',
-    Type='string',
-    Default='spunt-punt-be-dns',
-))
+template.set_transform('AWS::Serverless-2016-10-31')
 
 core_stack = template.add_parameter(Parameter(
     'CoreStack',
-    Type='string',
+    Type='String',
     Default='spunt-core',
-))
-
-domain_name = template.add_parameter(Parameter(
-    'DomainName',
-    Type='string',
-    Default='login.spunt.be',
-))
-
-cognito_domain_name = template.add_parameter(Parameter(
-    'CognitoDomainName',
-    Type='string',
-    Default='',
-    Description='Used for the A record since DomainName doesnt return its domain..'
 ))
 
 ses_from_address = template.add_parameter(Parameter(
     'SESFromAddress',
     Type='String',
+    Default='noreply@spunt.be',
     Description='The e-mail address to send the secret login code from',
 ))
 
 create_auth_challenge_lambda_code_key = template.add_parameter(Parameter(
     'CreateAuthChallenge',
-    Type='string',
+    Type='String',
     Default='lambda-code/auth/create_auth_challenge.zip',
 ))
 
 verify_auth_challenge_response_lambda_code_key = template.add_parameter(Parameter(
     'VerifyAuthChallengeResponse',
-    Type='string',
+    Type='String',
     Default='lambda-code/auth/verify_auth_challenge_response.zip',
 ))
 
 pre_sign_up_lambda_code_key = template.add_parameter(Parameter(
     'PreSignUp',
-    Type='string',
+    Type='String',
     Default='lambda-code/auth/pre_sign_up.zip',
 ))
 
 post_authentication_lambda_code_key = template.add_parameter(Parameter(
     'PostAuthentication',
-    Type='string',
+    Type='String',
     Default='lambda-code/auth/post_authentication.zip',
 ))
 
 define_auth_challenge_lambda_code_key = template.add_parameter(Parameter(
     'DefineAuthChallenge',
-    Type='string',
+    Type='String',
     Default='lambda-code/auth/define_auth_challenge.zip',
 ))
 
@@ -93,46 +58,12 @@ template.add_parameter_to_group(pre_sign_up_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(post_authentication_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(define_auth_challenge_lambda_code_key, 'Lambda Keys')
 
-template.add_condition('DomainIsCreated', Not(Equals(Ref(cognito_domain_name), '')))
-
-certificate = template.add_resource(Certificate(
-    "Certificate",
-    DomainName=Ref(domain_name),
-    DomainValidationOptions=[DomainValidationOption(
-        DomainName=Ref(domain_name),
-        ValidationDomain=ImportValue(Join('-', [Ref(dns_stack), 'HostedZoneName'])),
-    )],
-    ValidationMethod='DNS',
-))
-
-record_set_group = template.add_resource(RecordSetGroup(
-    "DnsRecords",
-    HostedZoneId=ImportValue(Join('-', [Ref(dns_stack), 'HostedZoneId'])),
-    RecordSets=[RecordSet(
-        Name=Ref(domain_name),
-        Type='A',
-        AliasTarget=AliasTarget(
-            HostedZoneId='Z2FDTNDATAQYW2',
-            DNSName=Ref(cognito_domain_name),
-        ),
-    ), RecordSet(
-        Name=Ref(domain_name),
-        Type='AAAA',
-        AliasTarget=AliasTarget(
-            HostedZoneId='Z2FDTNDATAQYW2',
-            DNSName=Ref(cognito_domain_name),
-        ),
-    )],
-    Comment=Join('', ['Record for Cognito in ', Ref(AWS_STACK_NAME)]),
-    Condition='DomainIsCreated',
-))
-
 create_auth_challenge = template.add_resource(Function(
     'CreateAuthChallengeFunction',
     Environment=Environment(
         Variables={'SES_FROM_ADDRESS': Ref(ses_from_address)}
     ),
-    Handler='create-auth-challenge.handler',
+    Handler='index.handler',
     Policies=[{
         'Version': '2012-10-17',
         'Statement': [
@@ -161,7 +92,7 @@ create_auth_challenge_invocation_permission = template.add_resource(Permission(
 
 verify_auth_challenge_response = template.add_resource(Function(
     'VerifyAuthChallengeResponseFunction',
-    Handler='verify-auth-challenge-response.handler',
+    Handler='index.handler',
     Runtime='nodejs10.x',
     AutoPublishAlias='live',
     CodeUri=S3Location(
@@ -180,7 +111,7 @@ verify_auth_challenge_response_invocation_permission = template.add_resource(Per
 
 pre_sign_up = template.add_resource(Function(
     'PreSignUpFunction',
-    Handler='pre-sign-up.handler',
+    Handler='index.handler',
     Runtime='nodejs10.x',
     AutoPublishAlias='live',
     CodeUri=S3Location(
@@ -214,7 +145,7 @@ post_authentication_role = template.add_resource(Role(
 
 post_authentication = template.add_resource(Function(
     'PostAuthenticationFunction',
-    Handler='post-authentication.handler',
+    Handler='index.handler',
     Role=GetAtt(post_authentication_role, 'Arn'),
     Runtime='nodejs10.x',
     AutoPublishAlias='live',
@@ -250,7 +181,7 @@ set_user_attributes_policy = template.add_resource(PolicyType(
 
 define_auth_challenge = template.add_resource(Function(
     'DefineAuthChallengeFunction',
-    Handler='define-auth-challenge.handler',
+    Handler='index.handler',
     Runtime='nodejs10.x',
     AutoPublishAlias='live',
     CodeUri=S3Location(
@@ -285,12 +216,6 @@ user_pool = template.add_resource(UserPool(
         SchemaAttribute(
             AttributeDataType='String',
             Required=True,
-            Name='name',
-            Mutable=True
-        ),
-        SchemaAttribute(
-            AttributeDataType='String',
-            Required=True,
             Name='email',
             Mutable=True
         )
@@ -310,15 +235,6 @@ user_pool_client = template.add_resource(UserPoolClient(
     ExplicitAuthFlows=['CUSTOM_AUTH_FLOW_ONLY'],
     UserPoolId=Ref(user_pool),
     ClientName='spunt-users',
-))
-
-user_pool_domain = template.add_resource(UserPoolDomain(
-    'UserPoolDomain',
-    UserPoolId=Ref(user_pool),
-    Domain=Ref(domain_name),
-    CustomDomainConfig=CustomDomainConfig(
-        CertificateArn=Ref(certificate),
-    ),
 ))
 
 user_pool_client_id = template.add_output(Output(

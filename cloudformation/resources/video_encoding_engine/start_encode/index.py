@@ -8,12 +8,13 @@ import boto3
 
 VIDEO_EVENTS_TABLE = os.environ.get('VIDEO_EVENTS_TABLE')
 VIDEO_ID_REGEX = r'^upload/([A-Za-z0-9\-]+)/.*mp4$'
+VIDEO_TEST_REGEX = r'^upload/.*mp4$'
 
 dynamo = boto3.client('dynamodb')
 
 
 def _is_valid_key(key):
-    return bool(re.match(VIDEO_ID_REGEX, key))
+    return bool(re.match(VIDEO_ID_REGEX, key)) or bool(re.match(VIDEO_TEST_REGEX, key))
 
 
 def _save_dummy_created_event(video_id):
@@ -55,7 +56,8 @@ def handler(event, context):
                     Item={
                         'videoId': {'S': video_id},
                         'type': {'S': 'NEW_VIDEO_UPLOADED'},
-                        'timestamp': {'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()},
+                        'timestamp': {
+                            'S': datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()},
                         'metadata': {'S': json.dumps({
                             'bucket': notification['s3']['bucket']['name'],
                             'path': key,

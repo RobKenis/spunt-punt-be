@@ -7,7 +7,7 @@ from troposphere.cloudfront import CloudFrontOriginAccessIdentity, CloudFrontOri
 from troposphere.iam import Role, Policy, ManagedPolicy
 from troposphere.logs import LogGroup
 from troposphere.s3 import Bucket, NotificationConfiguration, TopicConfigurations, Filter, S3Key, Rules, \
-    CorsConfiguration, CorsRules, BucketPolicy
+    CorsConfiguration, CorsRules, BucketPolicy, LifecycleConfiguration, LifecycleRule
 from troposphere.sns import Topic, TopicPolicy, Subscription
 from troposphere.sqs import Queue, QueuePolicy
 
@@ -95,7 +95,6 @@ start_media_insights_queue = template.add_resource(Queue(
 processing_failed_queue = template.add_resource(Queue(
     'ProcessingFailedQueue',
 ))
-
 
 consume_insights_queue_policy = template.add_resource(ManagedPolicy(
     'ConsumeMediaInsightsQueuePolicy',
@@ -305,6 +304,21 @@ template.add_resource(Permission(
 upload_bucket = template.add_resource(Bucket(
     'UploadBucket',
     BucketName=_upload_bucket_name,  # Setting the bucket name is stupid, but this resolves a circular dependency.
+    CorsConfiguration=CorsConfiguration(
+        CorsRules=[CorsRules(
+            AllowedOrigins=['*'],
+            AllowedMethods=['GET', 'HEAD', 'PUT', 'POST'],
+            AllowedHeaders=['*'],
+        )]
+    ),
+    LifecycleConfiguration=LifecycleConfiguration(
+        Rules=[LifecycleRule(
+            Id='DeleteUploadsAfterOneDay',
+            Status='Enabled',
+            ExpirationInDays=1,
+            Prefix='upload/',
+        )],
+    ),
     NotificationConfiguration=NotificationConfiguration(
         TopicConfigurations=[TopicConfigurations(
             Event='s3:ObjectCreated:*',

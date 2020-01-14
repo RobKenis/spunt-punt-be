@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { getAllVideos } from "../../api/VideoApiClient";
 import { VideoGrid } from "../../components/video-grid/VideoGrid";
 
-const AMOUNT_OF_VIDEOS_TO_DISPLAY = 8;
+const AMOUNT_OF_VIDEOS_TO_DISPLAY = 16;
 
 export class Home extends Component {
   state = {

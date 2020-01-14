@@ -20,6 +20,11 @@ const waitForGlobal = (key, callback) => {
 };
 
 export class Video extends Component {
+  constructor(props, context) {
+    super(props, context);
+    this.initializePlayer = this.initializePlayer.bind(this);
+  }
+
   componentDidMount() {
     const link = document.createElement("link");
     link.rel = "stylesheet";
@@ -30,9 +35,22 @@ export class Video extends Component {
     script.src = urls.js;
     document.body.appendChild(script);
 
+    this.initializePlayer(this.props.video);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.video !== prevProps.video) {
+      this.initializePlayer(this.props.video);
+    }
+  }
+
+  initializePlayer(props) {
+    if (!props.thumbnailUrl || !props.playbackUrl) {
+      return;
+    }
+
     waitForGlobal("THEOplayer", () => {
-      const video = this.refs.video;
-      const player = new THEOplayer.Player(video, {
+      const player = new THEOplayer.Player(this.refs.video, {
         libraryLocation: urls.library,
         ui: {
           fluid: true,
@@ -40,10 +58,10 @@ export class Video extends Component {
       });
 
       player.source = {
-        poster: video.dataset.thumbnailUrl,
+        poster: props.thumbnailUrl,
         sources: [
           {
-            src: video.dataset.playbackUrl,
+            src: props.playbackUrl,
             type: "application/dash+xml",
           },
         ],
@@ -59,12 +77,7 @@ export class Video extends Component {
             S<span>.</span>
           </div>
           <div className="video__aspect-ratio--inner">
-            <div
-              className="video__player theoplayer-container theoplayer-skin video-js"
-              data-thumbnail-url={this.props.video.thumbnailUrl}
-              data-playback-url={this.props.video.playbackUrl}
-              ref="video"
-            />
+            <div className="video__player theoplayer-container theoplayer-skin video-js" ref="video" />
           </div>
         </div>
         <div className="video__meta">

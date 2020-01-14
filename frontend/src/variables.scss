@@ -4,7 +4,6 @@ $grey: darken($grey-light, 25);
 $grey-dark: darken($grey, 20);
 $grey-darker: darken($grey, 20);
 
-$primary: #bada55;
 $orange: #e67e22;
 $yellow: #f1b70e;
 $green: #2ecc71;
@@ -14,6 +13,7 @@ $purple: #8e44ad;
 $red: #e74c3c;
 $white-ter: #ecf0f1;
 $yellow-invert: #fff;
+$primary: $green;
 
 $family-sans-serif: "Fira Sans", "Segoe UI", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 $family-monospace: "Inconsolata", "Consolas", "Monaco", monospace;

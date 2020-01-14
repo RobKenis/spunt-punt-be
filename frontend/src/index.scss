@@ -24,6 +24,10 @@
   }
 }
 
+p {
+  margin-bottom: $spacing-lg;
+}
+
 ::placeholder {
   color: $grey !important;
 }

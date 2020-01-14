@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faSpinner, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { uploadVideo } from "../../api/VideoApiClient";
 import "./Upload.scss";
 
@@ -8,6 +8,8 @@ export class Upload extends Component {
   state = {
     title: "",
     file: {},
+    isUploading: false,
+    hasError: false,
   };
 
   handleTitleChange(e) {
@@ -19,24 +21,42 @@ export class Upload extends Component {
   }
 
   handleSubmit(e) {
+    this.setState({ isUploading: true });
+    uploadVideo(this.state.title, this.state.file)
+      .then((response) => {
+        this.setState({
+          title: "",
+          file: {},
+          isUploading: false,
+          hasError: false,
+        });
+        console.log(response);
+      })
+      .catch((err) => {
+        this.setState({
+          isUploading: false,
+          hasError: true,
+        });
+        console.error(err);
+      });
     e.preventDefault();
-    uploadVideo(this.state.title, this.state.file.name).then((response) => {
-      console.log(response);
-    });
   }
 
   render() {
     return (
       <section className="container container--small section">
         <h1 className="title">Upload video</h1>
+        {this.state.hasError && (
+          <p className="has-text-danger">Something went wrong while uploading your video. Please try again.</p>
+        )}
         <form onSubmit={this.handleSubmit.bind(this)}>
           <div className="field">
             <div className="control">
               <input
-                className="input"
+                className="input is-light"
                 type="text"
                 name="title"
-                placeholder="Title"
+                placeholder="Title of video"
                 onChange={this.handleTitleChange.bind(this)}
               />
             </div>
@@ -49,12 +69,14 @@ export class Upload extends Component {
                   <FontAwesomeIcon icon={faUpload} size="sm" fixedWidth />
                 </span>
               </span>
-              <span className="file-name">{this.state.file.name || "Choose a file"}</span>
+              <span className="file-name">{this.state.file.name || "Choose a video"}</span>
             </label>
           </div>
           <div className="field">
             <div className="control">
-              <button className="button is-link">Submit</button>
+              <button className="button is-link" disabled={this.state.isUploading}>
+                {this.state.isUploading && <FontAwesomeIcon icon={faSpinner} size="sm" fixedWidth spin />} Submit
+              </button>
             </div>
           </div>
         </form>

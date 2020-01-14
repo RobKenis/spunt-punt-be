@@ -9,7 +9,7 @@
     flex-basis: 100%;
 
     @media screen and (min-width: $desktop) {
-      flex-basis: 75%;
+      flex-basis: 70%;
     }
   }
 
@@ -17,7 +17,7 @@
     flex-basis: 100%;
 
     @media screen and (min-width: $desktop) {
-      flex-basis: calc(25% - #{$spacing-xl * 2});
+      flex-basis: calc(30% - #{$spacing-xl * 2});
     }
   }
 }

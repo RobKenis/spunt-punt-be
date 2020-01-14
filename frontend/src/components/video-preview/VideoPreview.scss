@@ -10,7 +10,7 @@
   flex-direction: row;
   justify-content: flex-start;
   margin-bottom: $spacing-xl;
-  padding-bottom: $spacing-lg;
+  padding-bottom: $spacing-xl;
 
   &:last-of-type {
     border-bottom: none;
@@ -19,6 +19,7 @@
 
 .video-preview--vertical {
   flex-direction: column;
+  margin-bottom: $spacing-xl;
 }
 
 .video-preview__placeholder {
@@ -90,10 +91,10 @@
   .video-preview--horizontal & {
     font-size: 1rem;
     line-height: 1;
+  }
 
-    @media screen and (min-width: $desktop) {
-      font-size: .9rem;
-    }
+  .video-preview--vertical & {
+    margin-bottom: $spacing-md;
   }
 
   a {
@@ -102,9 +103,9 @@
 }
 
 .video-preview__labels {
-  .video-preview--horizontal & {
-    display: flex;
+  display: flex;
 
+  .video-preview--horizontal & {
     @media screen and (min-width: $desktop) {
       display: none;
     }
@@ -116,14 +117,15 @@
 }
 
 .video-preview__label {
+  background-color: white;
+  border-radius: 3px;
+  color: black;
+  display: inline;
+  font-size: 1rem;
+  margin-bottom: $spacing-sm;
+  margin-right: $spacing-sm;
+
   .video-preview--horizontal & {
-    background-color: white;
-    border-radius: 3px;
-    color: black;
-    display: inline;
-    font-size: 1rem;
-    margin-bottom: $spacing-sm;
-    margin-right: $spacing-sm;
-    padding: $spacing-xs $spacing-md;
+    margin-bottom: 0;
   }
 }

@@ -30,15 +30,37 @@ export const getVideo = async (id) => {
   return response.data;
 };
 
-export const uploadVideo = async (title, filename) => {
-  return await api.post(
-    "/v1/upload",
-    {
-      title: title,
-      filename: filename,
-    },
-    {
-      headers: { "Access-Control-Allow-Origin": "*" },
-    },
-  );
+const getPreSignedS3Data = async (title, file) => {
+  return await api.post("/v1/upload", {
+    title: title,
+    filename: file.name,
+  });
+};
+
+const getFormData = (fields, file) => {
+  const formData = new FormData();
+  formData.append("acl", fields["acl"]);
+  formData.append("key", fields["key"]);
+  formData.append("AWSAccessKeyId", fields["AWSAccessKeyId"]);
+  formData.append("x-amz-security-token", fields["x-amz-security-token"]);
+  formData.append("policy", fields["policy"]);
+  formData.append("signature", fields["signature"]);
+  formData.append("file", file);
+  return formData;
+};
+
+export const uploadVideo = async (title, file) => {
+  try {
+    const preSignedS3Data = await getPreSignedS3Data(title, file);
+    const s3url = preSignedS3Data.data.upload.url;
+    const formData = getFormData(preSignedS3Data.data.upload.fields, file);
+    const response = await axios.post(s3url, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return Promise.resolve(response);
+  } catch (e) {
+    return Promise.reject(e);
+  }
 };

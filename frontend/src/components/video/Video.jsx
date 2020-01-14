@@ -91,8 +91,8 @@ export class Video extends Component {
           </div>
           <ul className="video__labels">
             {this.props.video.labels &&
-              this.props.video.labels.slice(0, 3).map((label, index) => (
-                <li key={index} className="video__label">
+              this.props.video.labels.map((label, index) => (
+                <li key={index} className="video__label button is-white is-outlined">
                   {label}
                 </li>
               ))}

@@ -2,3 +2,4 @@ troposphere>=2.5.3
 awacs
 invoke
 boto3
+pandas

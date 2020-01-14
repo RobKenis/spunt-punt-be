@@ -13,6 +13,7 @@ const initPlayer = (element) => {
   });
 
   player.source = {
+    poster: element.dataset.thumbnailUrl,
     sources: [
       {
         src: element.dataset.playbackUrl,

@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHome, faFire, faBolt } from "@fortawesome/free-solid-svg-icons";
+import { faHome, faFire, faBolt, faUpload, faUser, faSignInAlt } from "@fortawesome/free-solid-svg-icons";
 import "./NavBar.scss";
 
 export class NavBar extends Component {
@@ -46,21 +46,25 @@ export class NavBar extends Component {
               <a className="navbar-item" href="/trending">
                 <FontAwesomeIcon icon={faBolt} size="sm" className="navbar-item-icon" fixedWidth /> Trending
               </a>
-              <div className="navbar-item">
-                <a className="button is-white" href="/upload">
-                  Upload
-                </a>
-              </div>
             </div>
             <div className="navbar-end">
               <div className="navbar-item">
+                <a className="button is-primary" href="/upload">
+                  {/* TODO: Only show when logged in */}
+                  <FontAwesomeIcon icon={faUpload} size="sm" className="navbar-item-icon" fixedWidth />
+                  <span>Upload</span>
+                </a>
+              </div>
+              <div className="navbar-item">
                 <a className="button is-white is-outlined" href="/sign-up">
-                  Sign up
+                  <FontAwesomeIcon icon={faUser} size="sm" className="navbar-item-icon" fixedWidth />
+                  <span>Sign Up</span>
                 </a>
               </div>
               <div className="navbar-item">
                 <a className="button is-white" href="/log-in">
-                  Log in
+                  <FontAwesomeIcon icon={faSignInAlt} size="sm" className="navbar-item-icon" fixedWidth />
+                  <span>Log In</span>
                 </a>
               </div>
             </div>

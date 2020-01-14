@@ -1,7 +1,24 @@
 @import "src/variables";
 
 .video-preview {
+  display: flex;
   position: relative;
+}
+
+.video-preview--horizontal {
+  border-bottom: 1px solid $grey;
+  flex-direction: row;
+  justify-content: flex-start;
+  margin-bottom: $spacing-xl;
+  padding-bottom: $spacing-lg;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.video-preview--vertical {
+  flex-direction: column;
 }
 
 .video-preview__placeholder {
@@ -9,33 +26,104 @@
   font-size: 4rem;
   margin-top: -((9 / 16) * 100%);
 
+  .video-preview--horizontal & {
+    display: none;
+  }
+
   span {
     color: $primary;
   }
 }
 
 .video-preview__aspect-ratio--outer {
-  align-items: center;
-  background-color: $grey-light;
-  display: flex;
-  height: 0;
-  justify-content: center;
-  margin-bottom: $spacing-lg;
-  overflow: hidden;
-  padding-top: (9 / 16) * 100%;
-  position: relative;
-  width: 100%;
+  .video-preview--horizontal & {
+    flex-basis: calc(35% - #{$spacing-lg * 2});
+    margin-right: $spacing-lg;
+  }
+
+  .video-preview--vertical & {
+    align-items: center;
+    background-color: $grey-light;
+    display: flex;
+    height: 0;
+    justify-content: center;
+    margin-bottom: $spacing-lg;
+    overflow: hidden;
+    padding-top: (9 / 16) * 100%;
+    position: relative;
+    width: 100%;
+  }
 }
 
 .video-preview__aspect-ratio--inner {
-  height: 100%;
-  left: 0;
-  position: absolute;
-  top: 0;
-  width: 100%;
+  .video-preview--horizontal & {
+    img {
+      display: block;
+    }
+  }
 
-  img {
-    height: auto;
+  .video-preview--vertical & {
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
     width: 100%;
+
+    img {
+      height: auto;
+      width: 100%;
+    }
+  }
+}
+
+.video-preview__meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  .video-preview--horizontal & {
+    flex-basis: 65%;
+  }
+}
+
+.video-preview__title {
+  .video-preview--horizontal & {
+    font-size: 1rem;
+    line-height: 1;
+
+    @media screen and (min-width: $desktop) {
+      font-size: .9rem;
+    }
+  }
+
+  a {
+    color: white;
+  }
+}
+
+.video-preview__labels {
+  .video-preview--horizontal & {
+    display: flex;
+
+    @media screen and (min-width: $desktop) {
+      display: none;
+    }
+
+    @media screen and (min-width: $widescreen) {
+      display: flex;
+    }
+  }
+}
+
+.video-preview__label {
+  .video-preview--horizontal & {
+    background-color: white;
+    border-radius: 3px;
+    color: black;
+    display: inline;
+    font-size: 1rem;
+    margin-bottom: $spacing-sm;
+    margin-right: $spacing-sm;
+    padding: $spacing-xs $spacing-md;
   }
 }

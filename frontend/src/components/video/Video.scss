@@ -2,10 +2,53 @@
 
 .video {
   margin-bottom: $spacing-xl;
+  position: relative;
+}
+
+.video__placeholder {
+  color: white;
+  font-size: 4rem;
+  margin-top: -((9 / 16) * 100%);
+
+  span {
+    color: $primary;
+  }
+}
+
+.video__aspect-ratio--outer {
+  align-items: center;
+  background-color: $grey-light;
+  display: flex;
+  height: 0;
+  justify-content: center;
+  margin-bottom: $spacing-lg;
+  overflow: hidden;
+  padding-top: (9 / 16) * 100%;
+  position: relative;
+  width: 100%;
+}
+
+.video__aspect-ratio--inner {
+  height: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+
+  .video__player {
+    height: auto;
+    width: 100%;
+  }
 }
 
 .video__player {
   margin-bottom: $spacing-lg;
+}
+
+.video__meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .video__labels {

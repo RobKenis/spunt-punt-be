@@ -17,7 +17,7 @@ export class Detail extends Component {
         video: video,
       });
     });
-    getHotVideos().then((videos) => {
+    getHotVideos(8).then((videos) => {
       this.setState({
         related: videos,
       });

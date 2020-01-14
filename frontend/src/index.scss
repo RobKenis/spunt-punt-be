@@ -6,10 +6,24 @@
 @import "./node_modules/bulma/sass/components/all";
 @import "./node_modules/bulma/sass/form/all";
 
+.container {
+  &--small {
+    max-width: 100% !important;
+
+    @media screen and (min-width: $desktop) {
+      max-width: $desktop / 2 !important;
+    }
+  }
+}
+
 .section {
   padding: 0 .75rem;
 
   @media screen and (min-width: $desktop) {
     padding: 1rem 0;
   }
+}
+
+::placeholder {
+  color: $grey !important;
 }

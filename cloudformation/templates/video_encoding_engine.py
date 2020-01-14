@@ -96,7 +96,6 @@ processing_failed_queue = template.add_resource(Queue(
     'ProcessingFailedQueue',
 ))
 
-
 consume_insights_queue_policy = template.add_resource(ManagedPolicy(
     'ConsumeMediaInsightsQueuePolicy',
     Description='Allows consuming messages from the media-insights queue.',
@@ -305,6 +304,13 @@ template.add_resource(Permission(
 upload_bucket = template.add_resource(Bucket(
     'UploadBucket',
     BucketName=_upload_bucket_name,  # Setting the bucket name is stupid, but this resolves a circular dependency.
+    CorsConfiguration=CorsConfiguration(
+        CorsRules=[CorsRules(
+            AllowedOrigins=['*'],
+            AllowedMethods=['GET', 'HEAD', 'PUT', 'POST'],
+            AllowedHeaders=['*'],
+        )]
+    ),
     NotificationConfiguration=NotificationConfiguration(
         TopicConfigurations=[TopicConfigurations(
             Event='s3:ObjectCreated:*',

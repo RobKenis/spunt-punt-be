@@ -7,7 +7,7 @@ from troposphere.cloudfront import CloudFrontOriginAccessIdentity, CloudFrontOri
 from troposphere.iam import Role, Policy, ManagedPolicy
 from troposphere.logs import LogGroup
 from troposphere.s3 import Bucket, NotificationConfiguration, TopicConfigurations, Filter, S3Key, Rules, \
-    CorsConfiguration, CorsRules, BucketPolicy
+    CorsConfiguration, CorsRules, BucketPolicy, LifecycleConfiguration, LifecycleRule
 from troposphere.sns import Topic, TopicPolicy, Subscription
 from troposphere.sqs import Queue, QueuePolicy
 
@@ -310,6 +310,14 @@ upload_bucket = template.add_resource(Bucket(
             AllowedMethods=['GET', 'HEAD', 'PUT', 'POST'],
             AllowedHeaders=['*'],
         )]
+    ),
+    LifecycleConfiguration=LifecycleConfiguration(
+        Rules=[LifecycleRule(
+            Id='DeleteUploadsAfterOneDay',
+            Status='Enabled',
+            ExpirationInDays=1,
+            Prefix='upload/',
+        )],
     ),
     NotificationConfiguration=NotificationConfiguration(
         TopicConfigurations=[TopicConfigurations(

@@ -12,8 +12,14 @@ export class Video extends Component {
           data-thumbnail-url={this.props.video.thumbnailUrl}
           data-playback-url={this.props.video.playbackUrl}
         />
-        <UpvoteButton videoId={this.props.video.videoId} />
-        <DownvoteButton videoId={this.props.video.videoId} />
+        <div className="field is-grouped">
+          <p className="control">
+            <UpvoteButton videoId={this.props.video.videoId} />
+          </p>
+          <p className="control">
+            <DownvoteButton videoId={this.props.video.videoId} />
+          </p>
+        </div>
         <ul className="video__labels">
           {this.props.video.labels &&
             this.props.video.labels.slice(0, 3).map((label, index) => (

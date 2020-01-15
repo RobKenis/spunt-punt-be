@@ -1,0 +1,12 @@
+@import "src/variables";
+
+.form {
+  .control.has-icons-left,
+  .control.has-icons-right, {
+    .input:focus {
+      ~ .icon {
+        color: $grey-dark;
+      }
+    }
+  }
+}

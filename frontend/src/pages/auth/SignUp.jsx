@@ -1,29 +1,44 @@
 import React, { Component } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faKey } from "@fortawesome/free-solid-svg-icons";
 import { AuthService } from "../../services/AuthService";
-import "./SignUp.scss";
+import "./auth.scss";
 
 export class SignUp extends Component {
+  authService;
+
   state = {
     email: "",
+    password: "",
   };
+
+  constructor(props, context) {
+    super(props, context);
+    this.authService = new AuthService();
+  }
 
   handleEmailChange(e) {
     this.setState({ email: e.target.value });
   }
 
+  handlePasswordChange(e) {
+    this.setState({ password: e.target.value });
+  }
+
   handleSubmit(e) {
     e.preventDefault();
-    const authService = new AuthService();
-    authService.signUp(this.state.email);
+    this.authService.signUp(this.state.email, this.state.password).then((response) => {
+      this.props.history.push("/auth/confirm", {
+        email: response.user.username,
+      });
+    });
   }
 
   render() {
     return (
-      <section className="container section sign-up">
+      <section className="container container--small section">
         <h1 className="title">Sign Up</h1>
-        <form className="sign-up__form" onSubmit={this.handleSubmit.bind(this)}>
+        <form className="form" onSubmit={this.handleSubmit.bind(this)}>
           <div className="field">
             <div className="control has-icons-left">
               <input
@@ -39,8 +54,27 @@ export class SignUp extends Component {
             </div>
           </div>
           <div className="field">
+            <div className="control has-icons-left">
+              <input
+                type="password"
+                className="input"
+                placeholder="Password"
+                value={this.state.password}
+                onChange={this.handlePasswordChange.bind(this)}
+              />
+              <span className="icon is-small is-left">
+                <FontAwesomeIcon icon={faKey} size="sm" fixedWidth />
+              </span>
+            </div>
+          </div>
+          <div className="field is-grouped">
             <div className="control">
               <button className="button is-link">Sign Up</button>
+            </div>
+            <div className="control">
+              <a className="button is-link is-outlined" href="/log-in">
+                Already have an account?
+              </a>
             </div>
           </div>
         </form>

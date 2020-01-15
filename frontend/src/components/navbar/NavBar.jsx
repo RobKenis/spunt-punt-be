@@ -1,25 +1,26 @@
 import React, { Component } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHome, faFire, faBolt, faUpload, faUser, faSignInAlt } from "@fortawesome/free-solid-svg-icons";
+import { faHome, faFire, faBolt, faUpload, faUser, faSignInAlt, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
 import "./NavBar.scss";
 
 export class NavBar extends Component {
-  constructor(props, context) {
-    super(props, context);
-    this.state = {
-      toggled: false,
-    };
-  }
+  state = {
+    toggled: false,
+  };
 
-  toggle = () => {
+  toggle() {
     this.setState({
       toggled: !this.state.toggled,
     });
-  };
+  }
 
-  isToggled = () => {
+  isToggled() {
     return this.state.toggled;
-  };
+  }
+
+  isAuthenticated() {
+    return this.props.isAuthenticated;
+  }
 
   render() {
     return (
@@ -29,7 +30,10 @@ export class NavBar extends Component {
             <a className="navbar-item navbar-brand-icon" href="/">
               S<span>.</span>
             </a>
-            <div className={`navbar-burger burger ${this.isToggled() ? "is-active" : ""}`} onClick={this.toggle}>
+            <div
+              className={`navbar-burger burger ${this.isToggled() ? "is-active" : ""}`}
+              onClick={this.toggle.bind(this)}
+            >
               <span aria-hidden="true" />
               <span aria-hidden="true" />
               <span aria-hidden="true" />
@@ -48,25 +52,37 @@ export class NavBar extends Component {
               </a>
             </div>
             <div className="navbar-end">
-              <div className="navbar-item">
-                <a className="button is-primary" href="/upload">
-                  {/* TODO: Only show when logged in */}
-                  <FontAwesomeIcon icon={faUpload} size="sm" className="navbar-item-icon" fixedWidth />
-                  <span>Upload</span>
-                </a>
-              </div>
-              <div className="navbar-item">
-                <a className="button is-white is-outlined" href="/sign-up">
-                  <FontAwesomeIcon icon={faUser} size="sm" className="navbar-item-icon" fixedWidth />
-                  <span>Sign Up</span>
-                </a>
-              </div>
-              <div className="navbar-item">
-                <a className="button is-white" href="/log-in">
-                  <FontAwesomeIcon icon={faSignInAlt} size="sm" className="navbar-item-icon" fixedWidth />
-                  <span>Log In</span>
-                </a>
-              </div>
+              {this.isAuthenticated() ? (
+                <>
+                  <div className="navbar-item">
+                    <a className="button is-primary" href="/upload">
+                      <FontAwesomeIcon icon={faUpload} size="sm" className="navbar-item-icon" fixedWidth />
+                      <span>Upload</span>
+                    </a>
+                  </div>
+                  <div className="navbar-item">
+                    <a className="button is-white" href="/auth/log-out">
+                      <FontAwesomeIcon icon={faSignOutAlt} size="sm" className="navbar-item-icon" fixedWidth />
+                      <span>Log out</span>
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="navbar-item">
+                    <a className="button is-white is-outlined" href="/auth/sign-up">
+                      <FontAwesomeIcon icon={faUser} size="sm" className="navbar-item-icon" fixedWidth />
+                      <span>Sign Up</span>
+                    </a>
+                  </div>
+                  <div className="navbar-item">
+                    <a className="button is-white" href="/auth/log-in">
+                      <FontAwesomeIcon icon={faSignInAlt} size="sm" className="navbar-item-icon" fixedWidth />
+                      <span>Log In</span>
+                    </a>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

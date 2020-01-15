@@ -88,4 +88,3 @@ cd resources/spunt_api/upload/
 zip -r upload.zip index.py
 mv upload.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
-

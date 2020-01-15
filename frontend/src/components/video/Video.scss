@@ -75,3 +75,13 @@
     margin-right: 0;
   }
 }
+
+
+.theo-primary-color, .vjs-selected {
+  color: $primary !important;
+}
+
+.theo-primary-background {
+  color: $grey-dark !important;
+  background-color: $primary !important;
+}

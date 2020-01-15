@@ -1,21 +1,13 @@
 import React, { Component } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faKey } from "@fortawesome/free-solid-svg-icons";
-import { AuthService } from "../../services/AuthService";
 import "./auth.scss";
 
 export class SignUp extends Component {
-  authService;
-
   state = {
     email: "",
     password: "",
   };
-
-  constructor(props, context) {
-    super(props, context);
-    this.authService = new AuthService();
-  }
 
   handleEmailChange(e) {
     this.setState({ email: e.target.value });
@@ -27,7 +19,7 @@ export class SignUp extends Component {
 
   handleSubmit(e) {
     e.preventDefault();
-    this.authService.signUp(this.state.email, this.state.password).then((response) => {
+    this.props.authService.signUp(this.state.email, this.state.password).then((response) => {
       this.props.history.push("/auth/confirm", {
         email: response.user.username,
       });

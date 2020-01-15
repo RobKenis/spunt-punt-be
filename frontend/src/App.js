@@ -39,7 +39,7 @@ export class App extends Component {
   render() {
     return (
       <>
-        <NavBar isAuthenticated={this.state.isAuthenticated} />
+        <NavBar authService={this.authService} isAuthenticated={this.state.isAuthenticated} />
         <BrowserRouter>
           <Switch>
             <Route exact path="/" component={Home} />
@@ -47,17 +47,29 @@ export class App extends Component {
             <Route exact path="/trending" component={Trending} />
             <Route exact path="/upload" component={Upload} />
             <Route exact path="/video/:id" component={Detail} />
-            <Route exact path="/auth/sign-up" component={SignUp} />
-            <Route exact path="/auth/confirm" component={Confirm} />
+            <Route
+              exact
+              path="/auth/sign-up"
+              render={(props) => <SignUp {...props} authService={this.authService} />}
+            />
+            <Route
+              exact
+              path="/auth/confirm"
+              render={(props) => <Confirm {...props} authService={this.authService} />}
+            />
             <Route
               exact
               path="/auth/log-in"
-              render={(props) => <LogIn {...props} setAuthenticated={this.setAuthenticated} />}
+              render={(props) => (
+                <LogIn {...props} authService={this.authService} setAuthenticated={this.setAuthenticated} />
+              )}
             />
             <Route
               exact
               path="/auth/log-out"
-              render={(props) => <LogOut {...props} setAuthenticated={this.setAuthenticated} />}
+              render={(props) => (
+                <LogOut {...props} authService={this.authService} setAuthenticated={this.setAuthenticated} />
+              )}
             />
           </Switch>
         </BrowserRouter>

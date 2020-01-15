@@ -1,20 +1,12 @@
 import React, { Component } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faKey } from "@fortawesome/free-solid-svg-icons";
-import { AuthService } from "../../services/AuthService";
 import "./auth.scss";
 
 export class Confirm extends Component {
-  authService;
-
   state = {
     code: "",
   };
-
-  constructor(props, context) {
-    super(props, context);
-    this.authService = new AuthService();
-  }
 
   handleCodeChange(e) {
     this.setState({ code: e.target.value.trim() });
@@ -22,7 +14,7 @@ export class Confirm extends Component {
 
   handleSubmit(e) {
     e.preventDefault();
-    this.authService.confirmSignUp(this.props.location.state.email, this.state.code).then(() => {
+    this.props.authService.confirmSignUp(this.props.location.state.email, this.state.code).then(() => {
       this.props.history.push("/auth/log-in", {
         email: this.props.location.state.email,
       });

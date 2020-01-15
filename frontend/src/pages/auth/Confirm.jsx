@@ -17,7 +17,7 @@ export class Confirm extends Component {
   }
 
   handleCodeChange(e) {
-    this.setState({ code: e.target.value });
+    this.setState({ code: e.target.value.trim() });
   }
 
   handleSubmit(e) {

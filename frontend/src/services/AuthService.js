@@ -1,11 +1,9 @@
-import Amplify, { Auth } from "aws-amplify";
+import Auth from "@aws-amplify/auth";
 
-Amplify.configure({
-  Auth: {
-    region: "us-east-1",
-    userPoolId: "us-east-1_4G2G3t93q",
-    userPoolWebClientId: "7o4ffpnvmhksc7goees8h54oqa",
-  },
+Auth.configure({
+  region: "us-east-1",
+  userPoolId: "us-east-1_4G2G3t93q",
+  userPoolWebClientId: "7o4ffpnvmhksc7goees8h54oqa",
 });
 
 export class AuthService {

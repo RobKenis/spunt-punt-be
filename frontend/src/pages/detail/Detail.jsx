@@ -26,9 +26,12 @@ export class Detail extends Component {
 
   render() {
     return (
-      <section className="container section detail">
-        <Video video={this.state.video} />
-        <VideoList videos={this.state.related} />
+      <section className="container section">
+        <h1 className="title">{this.state.video.title}</h1>
+        <div className="detail">
+          <Video video={this.state.video} />
+          <VideoList videos={this.state.related} />
+        </div>
       </section>
     );
   }

@@ -32,6 +32,10 @@ export class App extends Component {
     });
   }
 
+  isAuthenticated() {
+    return this.state.isAuthenticated;
+  }
+
   setAuthenticated(value) {
     this.setState({ isAuthenticated: value });
   }
@@ -39,7 +43,7 @@ export class App extends Component {
   render() {
     return (
       <>
-        <NavBar authService={this.authService} isAuthenticated={this.state.isAuthenticated} />
+        <NavBar authService={this.authService} isAuthenticated={this.isAuthenticated.bind(this)} />
         <BrowserRouter>
           <Switch>
             <Route exact path="/" component={Home} />

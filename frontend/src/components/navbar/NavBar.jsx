@@ -18,10 +18,6 @@ export class NavBar extends Component {
     return this.state.toggled;
   }
 
-  isAuthenticated() {
-    return this.props.isAuthenticated;
-  }
-
   render() {
     return (
       <nav className="navbar is-black is-spaced">
@@ -52,7 +48,7 @@ export class NavBar extends Component {
               </a>
             </div>
             <div className="navbar-end">
-              {this.isAuthenticated() ? (
+              {this.props.isAuthenticated() ? (
                 <>
                   <div className="navbar-item">
                     <a className="button is-primary" href="/upload">

@@ -61,10 +61,10 @@ export class SignUp extends Component {
           </div>
           <div className="field is-grouped">
             <div className="control">
-              <button className="button is-link">Sign Up</button>
+              <button className="button is-primary">Sign Up</button>
             </div>
             <div className="control">
-              <a className="button is-link is-outlined" href="/log-in">
+              <a className="button is-primary is-outlined" href="/log-in">
                 Already have an account?
               </a>
             </div>

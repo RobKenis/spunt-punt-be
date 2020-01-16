@@ -74,7 +74,7 @@ export class Upload extends Component {
           </div>
           <div className="field">
             <div className="control">
-              <button className="button is-link" disabled={this.state.isUploading}>
+              <button className="button is-primary" disabled={this.state.isUploading}>
                 {this.state.isUploading && <FontAwesomeIcon icon={faSpinner} size="sm" fixedWidth spin />} Submit
               </button>
             </div>

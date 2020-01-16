@@ -41,7 +41,7 @@ export class Confirm extends Component {
           </div>
           <div className="field">
             <div className="control">
-              <button className="button is-link">Confirm</button>
+              <button className="button is-primary">Confirm</button>
             </div>
           </div>
         </form>

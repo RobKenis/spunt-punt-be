@@ -74,10 +74,10 @@ export class LogIn extends Component {
           </div>
           <div className="field is-grouped">
             <div className="control">
-              <button className="button is-link">Log In</button>
+              <button className="button is-primary">Log In</button>
             </div>
             <div className="control">
-              <a className="button is-link is-outlined" href="/auth/sign-up">
+              <a className="button is-primary is-outlined" href="/auth/sign-up">
                 Not registered yet?
               </a>
             </div>

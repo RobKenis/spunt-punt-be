@@ -64,7 +64,7 @@ export class SignUp extends Component {
               <button className="button is-primary">Sign Up</button>
             </div>
             <div className="control">
-              <a className="button is-primary is-outlined" href="/log-in">
+              <a className="button is-primary is-outlined" href="/auth/log-in">
                 Already have an account?
               </a>
             </div>

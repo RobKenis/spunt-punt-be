@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import { BrowserRouter, Switch, Route } from "react-router-dom";
 
+import { AuthService } from "./services/AuthService";
 import { NavBar } from "./components/navbar/NavBar";
 import { Home } from "./pages/overview/Home";
 import { Hot } from "./pages/overview/Hot";
@@ -11,7 +12,6 @@ import { SignUp } from "./pages/auth/SignUp";
 import { Confirm } from "./pages/auth/Confirm";
 import { LogIn } from "./pages/auth/LogIn";
 import { LogOut } from "./pages/auth/LogOut";
-import { AuthService } from "./services/AuthService";
 
 export class App extends Component {
   authService;
@@ -23,6 +23,7 @@ export class App extends Component {
   constructor(props, context) {
     super(props, context);
     this.authService = new AuthService();
+    this.isAuthenticated = this.isAuthenticated.bind(this);
     this.setAuthenticated = this.setAuthenticated.bind(this);
   }
 
@@ -43,7 +44,7 @@ export class App extends Component {
   render() {
     return (
       <>
-        <NavBar authService={this.authService} isAuthenticated={this.isAuthenticated.bind(this)} />
+        <NavBar isAuthenticated={this.isAuthenticated} />
         <BrowserRouter>
           <Switch>
             <Route exact path="/" component={Home} />
@@ -51,29 +52,17 @@ export class App extends Component {
             <Route exact path="/trending" component={Trending} />
             <Route exact path="/upload" component={Upload} />
             <Route exact path="/video/:id" component={Detail} />
-            <Route
-              exact
-              path="/auth/sign-up"
-              render={(props) => <SignUp {...props} authService={this.authService} />}
-            />
-            <Route
-              exact
-              path="/auth/confirm"
-              render={(props) => <Confirm {...props} authService={this.authService} />}
-            />
+            <Route exact path="/auth/sign-up" component={SignUp} />
+            <Route exact path="/auth/confirm" component={Confirm} />
             <Route
               exact
               path="/auth/log-in"
-              render={(props) => (
-                <LogIn {...props} authService={this.authService} setAuthenticated={this.setAuthenticated} />
-              )}
+              render={(props) => <LogIn {...props} setAuthenticated={this.setAuthenticated} />}
             />
             <Route
               exact
               path="/auth/log-out"
-              render={(props) => (
-                <LogOut {...props} authService={this.authService} setAuthenticated={this.setAuthenticated} />
-              )}
+              render={(props) => <LogOut {...props} setAuthenticated={this.setAuthenticated} />}
             />
           </Switch>
         </BrowserRouter>

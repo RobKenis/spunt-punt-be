@@ -1,13 +1,21 @@
 import React, { Component } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faKey } from "@fortawesome/free-solid-svg-icons";
+import { AuthService } from "../../services/AuthService";
 import "./auth.scss";
 
 export class LogIn extends Component {
+  authService;
+
   state = {
     email: "",
     password: "",
   };
+
+  constructor(props, context) {
+    super(props, context);
+    this.authService = new AuthService();
+  }
 
   componentDidMount() {
     if (this.props.location && this.props.location.state) {
@@ -33,7 +41,7 @@ export class LogIn extends Component {
 
   handleSubmit(e) {
     e.preventDefault();
-    this.props.authService.signIn(this.state.email, this.state.password).then(() => {
+    this.authService.signIn(this.state.email, this.state.password).then(() => {
       this.props.setAuthenticated(true);
       this.props.history.push("/");
     });

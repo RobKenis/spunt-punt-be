@@ -17,7 +17,7 @@ export class DownvoteButton extends Component {
       if (isAuthenticated) {
         this.authService.getUserDetails().then((userDetails) => {
           const userId = userDetails.find((userDetail) => userDetail.Name === "sub").Value;
-          downvoteVideo(this.props.videoId, userId).then(() => {
+          downvoteVideo({ videoId: this.props.videoId, userId: userId }).then(() => {
             this.props.showVoteMessage("Why so serious?", false);
           });
         });

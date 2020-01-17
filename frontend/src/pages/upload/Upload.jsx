@@ -22,15 +22,15 @@ export class Upload extends Component {
 
   handleSubmit(e) {
     this.setState({ isUploading: true });
-    uploadVideo(this.state.title, this.state.file)
-      .then((response) => {
+    uploadVideo({ title: this.state.title, file: this.state.file })
+      .then((videoId) => {
         this.setState({
           title: "",
           file: {},
           isUploading: false,
           hasError: false,
         });
-        console.log(response);
+        this.props.history.push(`/video/${videoId}`);
       })
       .catch((err) => {
         this.setState({

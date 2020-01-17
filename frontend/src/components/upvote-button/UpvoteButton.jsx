@@ -17,7 +17,7 @@ export class UpvoteButton extends Component {
       if (isAuthenticated) {
         this.authService.getUserDetails().then((userDetails) => {
           const userId = userDetails.find((userDetail) => userDetail.Name === "sub").Value;
-          upvoteVideo(this.props.videoId, userId).then(() => {
+          upvoteVideo({ videoId: this.props.videoId, userId: userId }).then(() => {
             this.props.showVoteMessage("That's very kind of you!", false);
           });
         });

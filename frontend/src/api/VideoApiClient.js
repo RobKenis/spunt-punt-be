@@ -30,14 +30,14 @@ export const getVideo = async (id) => {
   return response.data;
 };
 
-const getPreSignedS3Data = async (title, file) => {
+const getPreSignedS3Data = async ({ title, file }) => {
   return await api.post("/v1/upload", {
     title: title,
     filename: file.name,
   });
 };
 
-const getFormData = (fields, file) => {
+const getFormData = ({ fields, file }) => {
   const formData = new FormData();
   formData.append("acl", fields["acl"]);
   formData.append("key", fields["key"]);
@@ -49,29 +49,31 @@ const getFormData = (fields, file) => {
   return formData;
 };
 
-export const uploadVideo = async (title, file) => {
+export const uploadVideo = async ({ title, file }) => {
   try {
-    const preSignedS3Data = await getPreSignedS3Data(title, file);
+    const preSignedS3Data = await getPreSignedS3Data({ title, file });
     const s3url = preSignedS3Data.data.upload.url;
-    const formData = getFormData(preSignedS3Data.data.upload.fields, file);
-    const response = await axios.post(s3url, formData, {
+    const fields = preSignedS3Data.data.upload.fields;
+    const formData = getFormData({ fields, file });
+    await axios.post(s3url, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     });
-    return Promise.resolve(response);
+    return Promise.resolve(preSignedS3Data.data.videoId);
   } catch (e) {
     return Promise.reject(e);
   }
 };
-export const upvoteVideo = async (videoId, userId) => {
+
+export const upvoteVideo = async ({ videoId, userId }) => {
   return await api.post("/v1/upvote", {
     videoId: videoId,
     userId: userId,
   });
 };
 
-export const downvoteVideo = async (videoId, userId) => {
+export const downvoteVideo = async ({ videoId, userId }) => {
   return await api.post("/v1/downvote", {
     videoId: videoId,
     userId: userId,

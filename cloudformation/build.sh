@@ -88,3 +88,8 @@ cd resources/spunt_api/upload/
 zip -r upload.zip index.py
 mv upload.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
+
+cd resources/spunt_api/rewrite_assets/
+zip -r rewrite_assets.zip index.js
+mv rewrite_assets.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY

@@ -102,6 +102,12 @@ upload_lambda_code_key = template.add_parameter(Parameter(
     Default='lambda-code/api/upload.zip',
 ))
 
+rewrite_assets_lambda_code_key = template.add_parameter(Parameter(
+    'RewriteAssets',
+    Type=constants.STRING,
+    Default='lambda-code/api/rewrite_assets.zip',
+))
+
 template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(trending_videos_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(hot_videos_lambda_code_key, 'Lambda Keys')
@@ -111,6 +117,7 @@ template.add_parameter_to_group(rewrite_downvote_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(consume_events_code_key, 'Lambda Keys')
 template.add_parameter_to_group(upvote_lambda_code_key, 'Lambda Keys')
 template.add_parameter_to_group(upload_lambda_code_key, 'Lambda Keys')
+template.add_parameter_to_group(rewrite_assets_lambda_code_key, 'Lambda Keys')
 
 video_table = template.add_resource(Table(
     'VideoTable',
@@ -725,6 +732,19 @@ rewrite_downvote_function = template.add_resource(Function(
     CodeUri=S3Location(
         Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
         Key=Ref(rewrite_downvote_lambda_code_key),
+    ),
+))
+
+rewrite_assets_function = template.add_resource(Function(
+    'RewriteAssetsFunction',
+    Description='Rewrite assets based on CloudFront headers.',
+    Runtime='nodejs10.x',
+    Handler='index.handler',
+    Role=GetAtt(readonly_function_role, 'Arn'),
+    AutoPublishAlias='live',
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(rewrite_assets_lambda_code_key),
     ),
 ))
 

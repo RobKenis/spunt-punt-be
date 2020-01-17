@@ -45,6 +45,12 @@
   margin-bottom: $spacing-lg;
 }
 
+.video_message {
+  border-radius: $radius;
+  padding: $spacing-md $spacing-lg;
+  width: 100%;
+}
+
 .video__meta {
   align-items: flex-start;
   display: flex;

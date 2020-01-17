@@ -64,16 +64,16 @@ export const uploadVideo = async (title, file) => {
     return Promise.reject(e);
   }
 };
-export const upvoteVideo = async (videoId) => {
+export const upvoteVideo = async (videoId, userId) => {
   return await api.post("/v1/upvote", {
     videoId: videoId,
-    userId: "_TODO_",
+    userId: userId,
   });
 };
 
-export const downvoteVideo = async (videoId) => {
+export const downvoteVideo = async (videoId, userId) => {
   return await api.post("/v1/downvote", {
     videoId: videoId,
-    userId: "_TODO_",
+    userId: userId,
   });
 };

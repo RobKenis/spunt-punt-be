@@ -20,6 +20,11 @@ const waitForGlobal = (key, callback) => {
 };
 
 export class Video extends Component {
+  state = {
+    message: "",
+    isError: false,
+  };
+
   constructor(props, context) {
     super(props, context);
     this.initializePlayer = this.initializePlayer.bind(this);
@@ -69,6 +74,13 @@ export class Video extends Component {
     });
   }
 
+  showVoteMessage(message, isError = false) {
+    this.setState({
+      message: message,
+      isError: isError,
+    });
+  }
+
   render() {
     return (
       <div className="video">
@@ -80,13 +92,18 @@ export class Video extends Component {
             <div className="video__player theoplayer-container theoplayer-skin video-js" ref="video" />
           </div>
         </div>
+        {this.state.message && (
+          <p className={`video_message has-background-info ${this.state.isError && "has-background-danger"}`}>
+            {this.state.message}
+          </p>
+        )}
         <div className="video__meta">
           <div className="field is-grouped">
             <p className="control">
-              <UpvoteButton videoId={this.props.video.videoId} />
+              <UpvoteButton videoId={this.props.video.videoId} showVoteMessage={this.showVoteMessage.bind(this)} />
             </p>
             <p className="control">
-              <DownvoteButton videoId={this.props.video.videoId} />
+              <DownvoteButton videoId={this.props.video.videoId} showVoteMessage={this.showVoteMessage.bind(this)} />
             </p>
           </div>
           <ul className="video__labels">

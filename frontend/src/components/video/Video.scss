@@ -7,8 +7,16 @@
 
 .video__placeholder {
   color: white;
-  font-size: 4rem;
   margin-top: -((9 / 16) * 100%);
+  text-align: center;
+
+  h2 {
+    font-size: 6rem;
+  }
+
+  p {
+    font-size: 2rem;
+  }
 
   span {
     color: $primary;

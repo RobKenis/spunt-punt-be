@@ -85,8 +85,13 @@ export class Video extends Component {
     return (
       <div className="video">
         <div className="video__aspect-ratio--outer">
-          <div className="video-preview__placeholder">
-            S<span>.</span>
+          <div className="video__placeholder">
+            <h2>
+              S<span>.</span>
+            </h2>
+            {this.props.video.videoState && this.props.video.videoState !== "AVAILABLE" && (
+              <p>Relax while we process this video.</p>
+            )}
           </div>
           <div className="video__aspect-ratio--inner">
             <div className="video__player theoplayer-container theoplayer-skin video-js" ref="video" />

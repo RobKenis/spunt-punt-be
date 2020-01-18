@@ -6,7 +6,7 @@ from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role
 from troposphere.logs import LogGroup
 from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
-from troposphere.serverless import Api, Function, S3Location
+from troposphere.serverless import Api, Function, S3Location, Cors
 
 template = Template(Description='Admin dashboard for spunt.be videos')
 template.set_transform('AWS::Serverless-2016-10-31')
@@ -118,11 +118,11 @@ admin_api = template.add_resource(Api(
     'AdminApi',
     StageName='v1',
     EndpointConfiguration='REGIONAL',
-    # Cors=Cors(
-    #     AllowHeaders='*',
-    #     AllowMethods='*',
-    #     AllowOrigin='*',
-    # ),
+    Cors=Cors(
+        AllowHeaders="'*'",
+        AllowMethods="'*'",
+        AllowOrigin="'*'",
+    ),
 ))
 
 readonly_function_role = template.add_resource(Role(

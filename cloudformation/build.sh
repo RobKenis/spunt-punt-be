@@ -88,3 +88,9 @@ cd resources/spunt_api/upload/
 zip -r upload.zip index.py
 mv upload.zip "$WORKING_DIRECTORY/output/"
 cd $WORKING_DIRECTORY
+
+cd resources/video_admin/consume_events/
+zip -r consume_admin_events.zip index.py
+mv consume_admin_events.zip "$WORKING_DIRECTORY/output/"
+cd $WORKING_DIRECTORY
+

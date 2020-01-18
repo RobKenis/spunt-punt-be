@@ -106,7 +106,7 @@ mv upload.zip "$WORKING_DIRECTORY/output/"
 echo " -> Finished building upload.zip"
 cd $WORKING_DIRECTORY
 
-cd resources/spunt_api/rewrite_assets/
+cd resources/spunt_be/rewrite_assets/
 zip -q -r rewrite_assets.zip index.js
 mv rewrite_assets.zip "$WORKING_DIRECTORY/output/"
 echo " -> Finished building rewrite_assets.zip"

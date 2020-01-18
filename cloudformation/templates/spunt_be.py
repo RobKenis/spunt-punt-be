@@ -122,6 +122,7 @@ public_distribution = template.add_resource(Distribution(
             CachedMethods=['GET', 'HEAD', 'OPTIONS'],
             ForwardedValues=ForwardedValues(
                 QueryString=False,
+                Headers=['CloudFront-Is-Desktop-Viewer', 'CloudFront-Is-Mobile-Viewer', 'CloudFront-Is-Tablet-Viewer'],
             ),
             MinTTL=120,  # 2 minutes
             DefaultTTL=300,  # 5 minutes

@@ -6,7 +6,7 @@ from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role
 from troposphere.logs import LogGroup
 from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
-from troposphere.serverless import Api, Function
+from troposphere.serverless import Api, Function, S3Location
 
 template = Template(Description='Admin dashboard for spunt.be videos')
 template.set_transform('AWS::Serverless-2016-10-31')
@@ -35,7 +35,14 @@ consume_events_code_key = template.add_parameter(Parameter(
     Default='lambda-code/admin/consume_admin_events.zip',
 ))
 
+all_videos_lambda_code_key = template.add_parameter(Parameter(
+    'AllVideos',
+    Type=constants.STRING,
+    Default='lambda-code/admin/all_admin_videos.zip',
+))
+
 template.add_parameter_to_group(consume_events_code_key, 'Lambda Keys')
+template.add_parameter_to_group(all_videos_lambda_code_key, 'Lambda Keys')
 
 video_table = template.add_resource(Table(
     'VideoTable',
@@ -118,12 +125,47 @@ admin_api = template.add_resource(Api(
     # ),
 ))
 
+readonly_function_role = template.add_resource(Role(
+    'ReadonlyVideoApiRole',
+    Path="/",
+    AssumeRolePolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sts:AssumeRole"],
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]},
+        }],
+    },
+    Policies=[iam.Policy(
+        PolicyName="video-api-readonly",
+        PolicyDocument={
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+                "Resource": "arn:aws:logs:*:*:*",
+                "Effect": "Allow",
+            }, {
+                "Action": ['dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:Scan'],
+                "Resource": [GetAtt(video_table, 'Arn'), Join('', [GetAtt(video_table, 'Arn'), '/*'])],
+                "Effect": "Allow",
+            }, {
+                "Action": ['lambda:InvokeFunction'],
+                "Resource": '*',
+                "Effect": "Allow",
+            }],
+        })],
+))
+
 all_videos_function = template.add_resource(Function(
     'AllVideosFunction',
     Handler='index.handler',
-    Runtime='python3.7',
+    Runtime='nodejs10.x',
+    Role=GetAtt(readonly_function_role, 'Arn'),
     Description='Returns list of videos for the admin api.',
-    InlineCode="def handler(event, context):\n    return {'body': 'Hello World!','statusCode': 200}\n",
+    CodeUri=S3Location(
+        Bucket=ImportValue(Join('-', [Ref(core_stack), 'LambdaCodeBucket-Ref'])),
+        Key=Ref(all_videos_lambda_code_key),
+    ),
     Events={
         'ApiEvent': {
             'Properties': {
@@ -133,8 +175,20 @@ all_videos_function = template.add_resource(Function(
             },
             'Type': 'Api',
         }
-    }
+    },
+    Environment=Environment(
+        Variables={
+            'VIDEO_TABLE': Ref(video_table),
+        }
+    ),
 ))
+
+template.add_resource(LogGroup(
+    "AllVideosFunctionLogGroup",
+    LogGroupName=Join('/', ['/aws/lambda', Ref(all_videos_function)]),
+    RetentionInDays=7,
+))
+
 api_certificate = template.add_resource(Certificate(
     "ApiCertificate",
     DomainName=Ref(domain_name),

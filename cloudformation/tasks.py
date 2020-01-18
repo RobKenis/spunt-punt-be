@@ -57,4 +57,4 @@ def upload_lambda(c, docs=False):
 
 @task
 def clean(c, docs=False):
-    os.system('rm output/*.json output/*.zip')
+    os.system('rm output/*.json output/code/*.zip')

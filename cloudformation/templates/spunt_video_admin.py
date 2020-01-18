@@ -1,8 +1,12 @@
-from troposphere import Template, constants, Parameter, ImportValue, Join, Ref, iam, GetAtt, awslambda
+from troposphere import Template, constants, Parameter, ImportValue, Join, Ref, iam, GetAtt, awslambda, AWS_STACK_NAME
+from troposphere.apigateway import BasePathMapping, DomainName, EndpointConfiguration
 from troposphere.awslambda import Code, Environment, EventSourceMapping
+from troposphere.certificatemanager import Certificate, DomainValidationOption
 from troposphere.dynamodb import Table, AttributeDefinition, KeySchema
 from troposphere.iam import Role
 from troposphere.logs import LogGroup
+from troposphere.route53 import RecordSetGroup, RecordSet, AliasTarget
+from troposphere.serverless import Api, Function
 
 template = Template(Description='Admin dashboard for spunt.be videos')
 template.set_transform('AWS::Serverless-2016-10-31')
@@ -11,6 +15,12 @@ core_stack = template.add_parameter(Parameter(
     'CoreStack',
     Type=constants.STRING,
     Default='spunt-core',
+))
+
+dns_stack = template.add_parameter(Parameter(
+    'DnsStack',
+    Type=constants.STRING,
+    Default='spunt-punt-be-dns',
 ))
 
 domain_name = template.add_parameter(Parameter(
@@ -95,6 +105,81 @@ template.add_resource(EventSourceMapping(
     EventSourceArn=ImportValue(Join('-', [Ref(core_stack), 'EventsToDashboardQueue-Arn'])),
     FunctionName=Ref(consume_events_function),
     Enabled=True,
+))
+
+admin_api = template.add_resource(Api(
+    'AdminApi',
+    StageName='v1',
+    EndpointConfiguration='REGIONAL',
+    # Cors=Cors(
+    #     AllowHeaders='*',
+    #     AllowMethods='*',
+    #     AllowOrigin='*',
+    # ),
+))
+
+all_videos_function = template.add_resource(Function(
+    'AllVideosFunction',
+    Handler='index.handler',
+    Runtime='python3.7',
+    Description='Returns list of videos for the admin api.',
+    InlineCode="def handler(event, context):\n    return {'body': 'Hello World!','statusCode': 200}\n",
+    Events={
+        'ApiEvent': {
+            'Properties': {
+                'Method': 'get',
+                'Path': '/videos',
+                'RestApiId': Ref(admin_api),
+            },
+            'Type': 'Api',
+        }
+    }
+))
+api_certificate = template.add_resource(Certificate(
+    "ApiCertificate",
+    DomainName=Ref(domain_name),
+    DomainValidationOptions=[DomainValidationOption(
+        DomainName=Ref(domain_name),
+        ValidationDomain=ImportValue(Join('-', [Ref(dns_stack), 'HostedZoneName'])),
+    )],
+    ValidationMethod='DNS',
+))
+
+api_domain_name = template.add_resource(DomainName(
+    'ApiDomainName',
+    RegionalCertificateArn=Ref(api_certificate),
+    DomainName=Ref(domain_name),
+    EndpointConfiguration=EndpointConfiguration(
+        Types=['REGIONAL'],
+    ),
+))
+
+template.add_resource(BasePathMapping(
+    'ApiMapping',
+    DomainName=Ref(domain_name),
+    RestApiId=Ref(admin_api),
+    Stage='v1'
+))
+
+template.add_resource(RecordSetGroup(
+    "DnsRecords",
+    HostedZoneId=ImportValue(Join('-', [Ref(dns_stack), 'HostedZoneId'])),
+    RecordSets=[RecordSet(
+        Name=Ref(domain_name),
+        Type='A',
+        AliasTarget=AliasTarget(
+            HostedZoneId=GetAtt(api_domain_name, 'RegionalHostedZoneId'),
+            DNSName=GetAtt(api_domain_name, 'RegionalDomainName'),
+        ),
+    ), RecordSet(
+        Name=Ref(domain_name),
+        Type='AAAA',
+        AliasTarget=AliasTarget(
+            HostedZoneId=GetAtt(api_domain_name, 'RegionalHostedZoneId'),
+            DNSName=GetAtt(api_domain_name, 'RegionalDomainName'),
+        ),
+    )],
+    Comment=Join('', ['Record for Api Gateway in ', Ref(AWS_STACK_NAME)]),
 ))
 
 f = open("output/spunt_video_admin.json", "w")

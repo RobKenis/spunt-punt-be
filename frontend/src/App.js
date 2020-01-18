@@ -12,6 +12,7 @@ import { SignUp } from "./pages/auth/SignUp";
 import { Confirm } from "./pages/auth/Confirm";
 import { LogIn } from "./pages/auth/LogIn";
 import { LogOut } from "./pages/auth/LogOut";
+import { Videos } from "./pages/admin/Videos";
 
 export class App extends Component {
   authService;
@@ -54,6 +55,7 @@ export class App extends Component {
             <Route exact path="/video/:id" component={Detail} />
             <Route exact path="/auth/sign-up" component={SignUp} />
             <Route exact path="/auth/confirm" component={Confirm} />
+            <Route exact path="/admin/videos" component={Videos} />
             <Route
               exact
               path="/auth/log-in"

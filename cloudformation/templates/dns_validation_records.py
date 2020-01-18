@@ -12,6 +12,8 @@ RECORDS = {
         '_8a703f2dd4e2902fb3925da4f6635f11.mzlfeqexyx.acm-validations.aws.',
     '_253138266bf47c46f4f9283b64b661d4.dev.spunt.be.':
         '_97c9b3b4315ee224fd78624fbdf379b6.mzlfeqexyx.acm-validations.aws.',
+    '_ccfe3690ea1cbc3f70ac9330debed77d.admin.spunt.be.':
+        '_cd81118a1eddc7ee8e96a5d138582443.mzlfeqexyx.acm-validations.aws.',
 }
 
 template = Template(Description='Spunt.be validation records')

@@ -80,8 +80,21 @@ events_to_api_queue_policy = template.add_resource(ManagedPolicy(
     }
 ))
 
-event_to_dashboard_queue = template.add_resource(Queue(
+events_to_dashboard_queue = template.add_resource(Queue(
     'EventsToDashboardQueue',
+))
+
+event_to_dashboard_queue_policy = template.add_resource(ManagedPolicy(
+    'EventsToDashboardQueuePolicy',
+    Description='Allows consuming messages from the admin-events queue.',
+    PolicyDocument={
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["sqs:DeleteMessage", "sqs:ReceiveMessage", "sqs:GetQueueAttributes"],
+            "Resource": GetAtt(events_to_dashboard_queue, 'Arn'),
+            "Effect": "Allow",
+        }],
+    }
 ))
 
 event_router_role = template.add_resource(Role(
@@ -107,7 +120,7 @@ event_router_role = template.add_resource(Role(
                 "Effect": "Allow",
             }, {
                 "Action": ["sqs:SendMessage"],
-                "Resource": [GetAtt(events_to_api_queue, 'Arn'), GetAtt(event_to_dashboard_queue, 'Arn')],
+                "Resource": [GetAtt(events_to_api_queue, 'Arn'), GetAtt(events_to_dashboard_queue, 'Arn')],
                 "Effect": "Allow",
             }],
         })],
@@ -124,7 +137,7 @@ with open('resources/spunt_core/event_router/index.py', 'r') as lambda_code:
         Environment=Environment(
             Variables={
                 'API_EVENTS_QUEUE_URL': Ref(events_to_api_queue),
-                'DASHBOARD_EVENTS_QUEUE_URL': Ref(event_to_dashboard_queue),
+                'DASHBOARD_EVENTS_QUEUE_URL': Ref(events_to_dashboard_queue),
             },
         ),
         Events={
@@ -178,6 +191,20 @@ template.add_output(Output(
     Description='ARN of the managed policy that allows consuming the api-events Q.',
     Value=Ref(events_to_api_queue_policy),
     Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'EventsToApiQueuePolicy', 'Arn'])),
+))
+
+template.add_output(Output(
+    "EventsToDashboardQueue",
+    Description='ARN of the admin-events Q.',
+    Value=GetAtt(events_to_dashboard_queue, 'Arn'),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'EventsToDashboardQueue', 'Arn'])),
+))
+
+template.add_output(Output(
+    "EventsToDashboardQueuePolicy",
+    Description='ARN of the managed policy that allows consuming the admin-events Q.',
+    Value=Ref(event_to_dashboard_queue_policy),
+    Export=Export(Join("-", [Ref(AWS_STACK_NAME), 'EventsToDashboardQueuePolicy', 'Arn'])),
 ))
 
 f = open("output/core.json", "w")

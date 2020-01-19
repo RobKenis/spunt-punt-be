@@ -9,7 +9,11 @@
 html,
 body {
   &.has-navbar-fixed-top {
-    padding-top: $navbar-height * 2;
+    padding-top: $navbar-height * 1.5;
+
+    @media screen and (min-width: $desktop) {
+      padding-top: $navbar-height * 2;
+    }
   }
 }
 

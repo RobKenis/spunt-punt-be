@@ -16,6 +16,7 @@ def handler(event, context):
         JobId=event['jobId'],
         SortBy='NAME'
     )
+    print("Job with id: {id} finished with status: {status}.".format(id=event['jobId'], status=response['JobStatus']))
     counter = collections.Counter([label['Label']['Name'] for label in response['Labels']])
     labels = list(map(lambda count: {'name': count[0], 'amount': count[1]}, counter.most_common()))
     dynamo.put_item(
@@ -27,9 +28,3 @@ def handler(event, context):
             'metadata': {'S': json.dumps({'labels': labels})}
         }
     )
-
-
-handler({
-    "videoId": "a3e41b6a-344a-11ea-8a36-4ee1b5287af4",
-    "jobId": "07b078eaa4945d9297bac6f13e9f221e97383fe695bbbe08a9ba6e7771fd5678"
-}, None)

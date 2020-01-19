@@ -20,7 +20,7 @@ export class NavBar extends Component {
 
   render() {
     return (
-      <nav className="navbar is-black is-spaced">
+      <nav className="navbar is-black is-spaced is-fixed-top">
         <div className="container">
           <div className="navbar-brand">
             <a className="navbar-item navbar-brand-icon" href="/">
@@ -43,7 +43,7 @@ export class NavBar extends Component {
               <a className="navbar-item" href="/hot">
                 <FontAwesomeIcon icon={faFire} size="sm" className="navbar-item-icon" fixedWidth /> Hot
               </a>
-              <a className="navbar-item" href="/trending">
+              <a className="navbar-item is-disabled" href="/trending">
                 <FontAwesomeIcon icon={faBolt} size="sm" className="navbar-item-icon" fixedWidth /> Trending
               </a>
             </div>

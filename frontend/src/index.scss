@@ -6,6 +6,13 @@
 @import "./node_modules/bulma/sass/components/all";
 @import "./node_modules/bulma/sass/form/all";
 
+html,
+body {
+  &.has-navbar-fixed-top {
+    padding-top: $navbar-height * 2;
+  }
+}
+
 .container {
   &--small {
     max-width: 100% !important;

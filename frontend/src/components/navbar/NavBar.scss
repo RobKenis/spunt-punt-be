@@ -5,6 +5,11 @@
 
   .navbar-item {
     font-size: 1.2em;
+
+    &.is-disabled {
+      pointer-events: none;
+      opacity: .5;
+    }
   }
 
   .navbar-brand {

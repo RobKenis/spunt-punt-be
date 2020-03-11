@@ -1,5 +1,8 @@
 # Spunt.be
 
+## Global Architecture
+![Global Architecture}](docs/spunt-punt-be-global.png)
+
 ## Video Engine
 The video engine handles uploaded videos in the `upload-s3-bucket` and encodes these files to a supported format by the THEOplayer.
 For this case, we've picked MPEG-DASH.

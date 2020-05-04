@@ -21,7 +21,7 @@ def _generate_presigned_url(key):
 
     conditions = [
         {"acl": "bucket-owner-full-control"},
-        ["content-length-range", 1, 314572800]  # Max 30MB
+        ["content-length-range", 1, 314572800]  # Max 300MB
     ]
 
     return s3.generate_presigned_post(

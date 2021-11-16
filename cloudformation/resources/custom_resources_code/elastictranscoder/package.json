@@ -10,7 +10,7 @@
   "author": "Rob Kenis",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.5.3",
+    "aws-sdk": "^2.814.0",
     "cfn-lambda": "git+https://github.com/mazerte/cfn-lambda.git"
   }
 }
